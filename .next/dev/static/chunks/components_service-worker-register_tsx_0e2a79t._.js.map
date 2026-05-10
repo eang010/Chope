@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///Users/emily/Git/Chope/components/service-worker-register.tsx"],"sourcesContent":["'use client'\n\nimport { useEffect } from 'react'\n\nexport function ServiceWorkerRegister() {\n  useEffect(() => {\n    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return\n    if (process.env.NODE_ENV !== 'production') return\n\n    navigator.serviceWorker.register('/sw.js').catch(() => {})\n  }, [])\n\n  return null\n}\n"],"names":["ServiceWorkerRegister","navigator"],"mappings":";;;;AAOQ;AALR;;AAFA;;AAIO,SAASA;;IACd,IAAA,0LAAS;2CAAC;YACR,IAAI,+CAAkB,eAAe,CAAC,CAAC,mBAAmBC,SAAS,GAAG;YACtE,wCAA2C;;;QAG7C;0CAAG,EAAE;IAEL,OAAO;AACT;GATgBD;KAAAA"}}]
+}
