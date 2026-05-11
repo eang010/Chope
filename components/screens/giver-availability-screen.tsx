@@ -2,56 +2,54 @@
 
 import { useState } from "react"
 import { useAppStore } from "@/lib/store"
+import { datetimeLocalFromStored } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, ArrowRight, Calendar, Clock } from "lucide-react"
+import { ArrowLeft, ArrowRight, Clock } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { FlowProgressTracker } from "@/components/flow-progress-tracker"
+
+function formatLocalSummary(value: string): string {
+  const v = value.trim()
+  if (!v) return ""
+  return v.replace("T", " ")
+}
 
 export function GiverAvailabilityScreen() {
   const { setScreen, updateNewListing, newListing } = useAppStore()
   const today = new Date().toISOString().split("T")[0]
+  const minFrom = `${today}T00:00`
 
-  const [dateFrom, setDateFrom] = useState(() => {
-    const raw = newListing.availableFrom?.trim()
-    if (!raw) return today
-    if (raw.includes("T")) return raw.split("T")[0]
-    return raw
+  const [availableFrom, setAvailableFrom] = useState(() => {
+    const v = datetimeLocalFromStored(newListing.availableFrom, "from")
+    if (v) return v
+    return `${today}T09:00`
   })
-  const [timeFrom, setTimeFrom] = useState(() => {
-    const raw = newListing.availableFrom?.trim()
-    if (!raw) return "09:00"
-    if (!raw.includes("T")) return "09:00"
-    const timePart = raw.split("T")[1]?.replace(/Z$/i, "") ?? ""
-    return timePart.slice(0, 5) || "09:00"
-  })
-
-  const [dateUntil, setDateUntil] = useState(() => {
-    const raw = newListing.availableUntil?.trim()
-    if (!raw) return ""
-    if (raw.includes("T")) return raw.split("T")[0]
-    return raw
-  })
-  const [timeUntil, setTimeUntil] = useState(() => {
-    const raw = newListing.availableUntil?.trim()
-    if (!raw) return "18:00"
-    if (!raw.includes("T")) return "18:00"
-    const timePart = raw.split("T")[1]?.replace(/Z$/i, "") ?? ""
-    return timePart.slice(0, 5) || "18:00"
+  const [availableUntil, setAvailableUntil] = useState(() => {
+    const v = datetimeLocalFromStored(newListing.availableUntil, "until")
+    if (v) return v
+    if (newListing.isUrgent) return `${today}T18:00`
+    return ""
   })
 
   const isUrgent = newListing.isUrgent
 
   const handleContinue = () => {
-    const availableFrom = `${dateFrom}T${timeFrom}`
-    const availableUntil = dateUntil ? `${dateUntil}T${timeUntil}` : undefined
+    const from = availableFrom.trim()
+    if (!from) return
+    const until = availableUntil.trim()
+    if (isUrgent && !until) return
     updateNewListing({
-      availableFrom,
-      availableUntil,
+      availableFrom: from,
+      availableUntil: until || undefined,
     })
     setScreen("giver-location")
   }
+
+  const untilMin = availableFrom.trim() || minFrom
+  const continueDisabled =
+    !availableFrom.trim() || (isUrgent && !availableUntil.trim())
 
   return (
     <div className="min-h-screen flex flex-col px-6 py-8 bg-background">
@@ -85,58 +83,37 @@ export function GiverAvailabilityScreen() {
                   <span className="font-semibold text-sm">Urgent Collection</span>
                 </div>
                 <p className="text-xs text-muted-foreground mb-4">
-                  This listing needs to be collected today. Set the pickup time window.
+                  This listing needs to be collected today. Set the pickup time
+                  window.
                 </p>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Date
-                    </Label>
+                    <Label htmlFor="urgent-from">Available from</Label>
                     <Input
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => {
-                        setDateFrom(e.target.value)
-                        setDateUntil(e.target.value)
-                      }}
-                      min={today}
+                      id="urgent-from"
+                      type="datetime-local"
+                      value={availableFrom}
+                      min={minFrom}
+                      onChange={(e) => setAvailableFrom(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Must collect by
-                    </Label>
+                    <Label htmlFor="urgent-until">Must collect by</Label>
                     <Input
-                      type="time"
-                      value={timeUntil}
-                      onChange={(e) => setTimeUntil(e.target.value)}
+                      id="urgent-until"
+                      type="datetime-local"
+                      value={availableUntil}
+                      min={untilMin}
+                      onChange={(e) => setAvailableUntil(e.target.value)}
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Available from
-                    </Label>
-                    <Input
-                      type="time"
-                      value={timeFrom}
-                      onChange={(e) => setTimeFrom(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Selected window
-                    </Label>
-                    <div className="rounded-md border border-border bg-background px-3 py-2 text-sm">
-                      {`${dateFrom} ${timeFrom} – ${dateFrom} ${timeUntil}`}
-                    </div>
+                <div className="mt-4 space-y-2">
+                  <Label className="text-muted-foreground">Selected window</Label>
+                  <div className="rounded-md border border-border bg-background px-3 py-2 text-sm">
+                    {`${formatLocalSummary(availableFrom)} → ${formatLocalSummary(availableUntil)}`}
                   </div>
                 </div>
               </CardContent>
@@ -144,50 +121,28 @@ export function GiverAvailabilityScreen() {
           ) : (
             <>
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Available from
-                </Label>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Input
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    min={today}
-                  />
-                  <Input
-                    type="time"
-                    value={timeFrom}
-                    onChange={(e) => setTimeFrom(e.target.value)}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Selected: {dateFrom} {timeFrom}
-                </p>
+                <Label htmlFor="giver-from">Available from</Label>
+                <Input
+                  id="giver-from"
+                  type="datetime-local"
+                  value={availableFrom}
+                  min={minFrom}
+                  onChange={(e) => setAvailableFrom(e.target.value)}
+                />
               </div>
 
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Available until (optional)
-                </Label>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Input
-                    type="date"
-                    value={dateUntil}
-                    onChange={(e) => setDateUntil(e.target.value)}
-                    min={dateFrom}
-                  />
-                  <Input
-                    type="time"
-                    value={timeUntil}
-                    onChange={(e) => setTimeUntil(e.target.value)}
-                    disabled={!dateUntil}
-                  />
-                </div>
+                <Label htmlFor="giver-until">Available until (optional)</Label>
+                <Input
+                  id="giver-until"
+                  type="datetime-local"
+                  value={availableUntil}
+                  min={untilMin}
+                  onChange={(e) => setAvailableUntil(e.target.value)}
+                />
                 <p className="text-xs text-muted-foreground">
-                  {dateUntil
-                    ? `Selected: ${dateUntil} ${timeUntil}`
+                  {availableUntil.trim()
+                    ? `Selected: ${formatLocalSummary(availableUntil)}`
                     : "Leave empty if there’s no deadline"}
                 </p>
               </div>
@@ -211,6 +166,7 @@ export function GiverAvailabilityScreen() {
             size="lg"
             className="w-full py-6 rounded-xl text-base"
             onClick={handleContinue}
+            disabled={continueDisabled}
           >
             Continue
             <ArrowRight className="w-5 h-5 ml-2" />
