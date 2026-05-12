@@ -9,7 +9,15 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, MapPin, Clock, User, MessageCircle, Hand } from "lucide-react"
+import {
+  ArrowLeft,
+  MapPin,
+  Clock,
+  User,
+  MessageCircle,
+  Hand,
+  ListFilter,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   Dialog,
@@ -20,8 +28,15 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { FinderCategoryFilterSheet } from "@/components/finder-category-filter"
 
 const CAROUSEL_GAP = 16
+
+function cardWidthFromContainer(containerW: number) {
+  if (containerW <= 0) return 320
+  const capped = Math.min(containerW, 520)
+  return Math.min(448, Math.max(280, Math.floor(capped * 0.88)))
+}
 
 export function FinderBrowseScreen() {
   const {
@@ -36,6 +51,7 @@ export function FinderBrowseScreen() {
   } = useAppStore()
 
   const [showReserveDialog, setShowReserveDialog] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
   const [reserveMessage, setReserveMessage] = useState("")
   const [reserveError, setReserveError] = useState<string | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -52,6 +68,24 @@ export function FinderBrowseScreen() {
       listingShowsInFinderBrowse(l, chopes, selectedCategories)
     )
   }, [listings, chopes, selectedCategories])
+
+  const selectedCategoriesKey = useMemo(
+    () => [...selectedCategories].sort().join(","),
+    [selectedCategories]
+  )
+
+  const prevCategoriesKey = useRef<string | null>(null)
+  useEffect(() => {
+    if (prevCategoriesKey.current === null) {
+      prevCategoriesKey.current = selectedCategoriesKey
+      return
+    }
+    if (prevCategoriesKey.current === selectedCategoriesKey) return
+    prevCategoriesKey.current = selectedCategoriesKey
+    setCurrentListingIndex(0)
+    setActiveTab("overview")
+    setHeroPreviewUrl(null)
+  }, [selectedCategoriesKey, setCurrentListingIndex])
 
   const currentListing = filteredListings[currentListingIndex]
 
@@ -80,22 +114,33 @@ export function FinderBrowseScreen() {
     const el = carouselRef.current
     if (!el) return
 
-    const measure = () => {
-      const w = el.clientWidth
-      if (w === 0) return
-      const cardW = Math.min(320, Math.max(260, w - 48))
+    const applyMeasure = (w: number) => {
+      if (w <= 0) return
+      const vwCap =
+        typeof window !== "undefined"
+          ? Math.floor(window.innerWidth * 0.98)
+          : 520
+      const wCapped = Math.min(w, vwCap)
+      const cardW = cardWidthFromContainer(wCapped)
       setCarouselLayout((prev) =>
-        prev.containerW === w && prev.cardW === cardW
+        prev.containerW === wCapped && prev.cardW === cardW
           ? prev
-          : { containerW: w, cardW }
+          : { containerW: wCapped, cardW }
       )
+    }
+
+    const measure = () => {
+      applyMeasure(el.clientWidth)
+      if (el.clientWidth === 0) {
+        requestAnimationFrame(() => applyMeasure(el.clientWidth))
+      }
     }
 
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [filteredListings.length])
 
   useEffect(() => {
     const el = carouselRef.current
@@ -103,7 +148,7 @@ export function FinderBrowseScreen() {
     const { containerW, cardW } = carouselLayout
     const step = cardW + CAROUSEL_GAP
     const target = step * currentListingIndex - (containerW - cardW) / 2
-    el.scrollTo({ left: Math.max(0, target), behavior: "smooth" })
+    el.scrollTo({ left: Math.max(0, target), behavior: "auto" })
   }, [currentListingIndex, carouselLayout])
 
   useEffect(() => {
@@ -117,6 +162,7 @@ export function FinderBrowseScreen() {
     const handleScroll = () => {
       clearTimeout(scrollTimeout)
       scrollTimeout = setTimeout(() => {
+        if (filteredListings.length < 1) return
         const scrollLeft = carousel.scrollLeft
         const centerOffset = (containerW - cardW) / 2
         const centeredIndex = Math.round((scrollLeft + centerOffset) / step)
@@ -226,129 +272,138 @@ export function FinderBrowseScreen() {
     }, 1500)
   }
 
-  // Empty state
-  if (filteredListings.length === 0) {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col bg-background">
-        <div className="px-6 py-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="self-start -ml-2 mb-4"
-            onClick={() => setScreen("finder-categories")}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-        </div>
-        <div className="flex flex-1 flex-col items-center justify-center px-6 pb-6 text-center">
-          <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
-            <Hand className="w-10 h-10 text-muted-foreground" />
-          </div>
-          <h3 className="text-xl font-semibold mb-2">No listings found</h3>
-          <p className="text-muted-foreground mb-6">
-            No items available in your selected categories right now
-          </p>
-          <Button onClick={() => setScreen("finder-categories")}>
-            Change Categories
-          </Button>
-        </div>
+  const browseHeader = (options?: { showCounter?: boolean }) => (
+    <div className="bg-background px-6 py-4">
+      <div className="flex flex-wrap items-center gap-2 mb-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-2 shrink-0"
+          onClick={() => setScreen("role-select")}
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back
+        </Button>
+        <div className="flex-1 min-w-[8rem]" />
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0 gap-2"
+          onClick={() => setFilterOpen(true)}
+        >
+          <ListFilter className="h-4 w-4" />
+          Filter
+          {selectedCategories.length > 0 && (
+            <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+              {selectedCategories.length}
+            </span>
+          )}
+        </Button>
       </div>
-    )
-  }
-
-  // All viewed state
-  if (currentListingIndex >= filteredListings.length) {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col bg-background">
-        <div className="px-6 py-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="self-start -ml-2 mb-4"
-            onClick={() => setScreen("finder-categories")}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
+      {options?.showCounter && filteredListings.length > 0 && (
+        <div className="flex justify-end">
+          <span className="text-sm text-muted-foreground tabular-nums">
+            {currentListingIndex + 1} of {filteredListings.length}
+          </span>
         </div>
-        <div className="flex flex-1 flex-col items-center justify-center px-6 pb-6 text-center">
-          <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-            <span className="text-4xl">🎉</span>
-          </div>
-          <h3 className="text-2xl font-semibold mb-3 text-balance">
-            {"That's all for now!"}
-          </h3>
-          <p className="text-muted-foreground mb-8 max-w-[280px] text-balance">
-            You&apos;ve browsed through all {filteredListings.length} available listings in your selected categories
-          </p>
-          <div className="space-y-3 w-full max-w-xs">
-            <Button className="w-full" onClick={() => {
-              setCurrentListingIndex(0)
-            }}>
-              View All Listings Again
-            </Button>
-            <Button variant="outline" className="w-full" onClick={() => setScreen("finder-categories")}>
-              Browse Other Categories
-            </Button>
-            <Button variant="ghost" className="w-full" onClick={() => setScreen("my-reservations")}>
-              My chopes
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
-  }
+      )}
+    </div>
+  )
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-muted/30">
-      {/* Header */}
-      <div className="bg-background">
-        <div className="px-6 py-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="self-start -ml-2 mb-4"
-            onClick={() => setScreen("finder-categories")}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-          <div className="flex justify-end">
-            <span className="text-sm text-muted-foreground tabular-nums">
-              {currentListingIndex + 1} of {filteredListings.length}
-            </span>
+    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
+      {filteredListings.length === 0 ? (
+        <div className="flex min-h-0 flex-1 flex-col bg-background">
+          {browseHeader()}
+          <div className="flex flex-1 flex-col items-center justify-center px-6 pb-6 text-center">
+            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
+              <Hand className="w-10 h-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No listings found</h3>
+            <p className="text-muted-foreground mb-6 max-w-sm text-pretty">
+              {selectedCategories.length > 0
+                ? "No items match your filters right now. Try adjusting categories or tap Show all in filters."
+                : "No items are available to browse right now."}
+            </p>
+            {selectedCategories.length > 0 ? (
+              <Button onClick={() => setFilterOpen(true)}>Open filters</Button>
+            ) : null}
           </div>
         </div>
-      </div>
-
+      ) : currentListingIndex >= filteredListings.length ? (
+        <div className="flex min-h-0 flex-1 flex-col bg-background">
+          {browseHeader()}
+          <div className="flex flex-1 flex-col items-center justify-center px-6 pb-6 text-center">
+            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+              <span className="text-4xl">🎉</span>
+            </div>
+            <h3 className="text-2xl font-semibold mb-3 text-balance">
+              {"That's all for now!"}
+            </h3>
+            <p className="text-muted-foreground mb-8 max-w-[280px] text-balance">
+              You&apos;ve browsed through all {filteredListings.length} available
+              listing{filteredListings.length === 1 ? "" : "s"}
+              {selectedCategories.length > 0
+                ? " in your selected categories"
+                : ""}
+              .
+            </p>
+            <div className="space-y-3 w-full max-w-xs">
+              <Button
+                className="w-full"
+                onClick={() => {
+                  setCurrentListingIndex(0)
+                }}
+              >
+                View All Listings Again
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setFilterOpen(true)}
+              >
+                Adjust filters
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => setScreen("my-reservations")}
+              >
+                My chopes
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : (
+    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col bg-muted/30">
       {showSuccess && (
         <div className="fixed top-[calc(env(safe-area-inset-top,0px)+4rem)] left-1/2 z-50 -translate-x-1/2 rounded-full bg-primary px-6 py-3 text-primary-foreground shadow-lg animate-in fade-in slide-in-from-top-2">
           Choped! Coordinate pickup offline.
         </div>
       )}
 
-      {/* Horizontal scroll carousel — centered on desktop, measured width on narrow screens */}
-      <div className="mx-auto flex w-full max-w-5xl min-h-0 flex-1 flex-col">
-        <p className="sr-only">
-          Listing carousel. Use left and right arrow keys to move between listings.
-        </p>
-        <div
-          ref={carouselRef}
-          tabIndex={0}
-          role="region"
-          aria-roledescription="carousel"
-          aria-label="Browse listings"
-          className="flex min-h-0 flex-1 snap-x snap-mandatory items-start overflow-x-auto overscroll-x-contain pt-6 pb-40 scrollbar-hide outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-muted/30"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
+      <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
+        {browseHeader({ showCounter: true })}
+
+        <div className="mx-auto flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden px-0 sm:px-4">
+          <p className="sr-only">
+            Listing carousel. Scroll left and right, or use the left and right
+            arrow keys to move between listings.
+          </p>
           <div
-            className="flex gap-4"
+            ref={carouselRef}
+            tabIndex={0}
+            role="region"
+            aria-roledescription="carousel"
+            aria-label="Browse listings"
+            className="flex min-h-0 min-w-0 flex-1 flex-row items-stretch gap-0 overflow-x-auto overflow-y-hidden overscroll-x-contain px-2 pb-40 pt-2 scrollbar-hide outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-muted/30 snap-x snap-proximity touch-pan-x"
             style={{
-              paddingLeft: `max(1rem, calc(50% - ${carouselLayout.cardW / 2}px))`,
-              paddingRight: `max(1rem, calc(50% - ${carouselLayout.cardW / 2}px))`,
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              WebkitOverflowScrolling: "touch",
             }}
           >
+          <div className="flex h-full min-h-0 flex-row gap-4 py-1 pl-1 pr-1">
           {filteredListings.map((listing, index) => {
             const isActive = index === currentListingIndex
             const spotsLeft = getRemaining(listing, chopes)
@@ -357,19 +412,21 @@ export function FinderBrowseScreen() {
               <div
                 key={listing.id}
                 className={cn(
-                  "snap-center shrink-0 transition-all duration-300 ease-out",
-                  isActive ? "z-10 scale-100 opacity-100" : "z-0 scale-90 opacity-50"
+                  "flex h-full shrink-0 snap-center justify-center transition-all duration-300 ease-out",
+                  isActive ? "z-10 scale-100 opacity-100" : "z-0 scale-[0.97] opacity-50"
                 )}
                 style={{ width: carouselLayout.cardW || 320 }}
                 onClick={() => handleCardClick(index)}
               >
                 {/* Google Maps Style Card */}
-                <Card className={cn(
-                  "overflow-hidden bg-card shadow-xl cursor-pointer transition-shadow",
-                  isActive && "shadow-2xl"
-                )}>
+                <Card
+                  className={cn(
+                    "flex h-full max-h-full w-full max-w-md flex-col overflow-hidden bg-card shadow-xl cursor-pointer transition-shadow",
+                    isActive && "shadow-2xl"
+                  )}
+                >
                   {/* Hero Image */}
-                  <div className="relative h-44 bg-muted overflow-hidden">
+                  <div className="relative h-36 shrink-0 overflow-hidden bg-muted sm:h-44">
                     <img
                       src={
                         isActive && heroPreviewUrl
@@ -410,9 +467,9 @@ export function FinderBrowseScreen() {
 
                   {/* Only show details for active card */}
                   {isActive && (
-                    <>
+                    <div className="flex min-h-0 flex-1 flex-col border-t border-border">
                       {/* Tab Navigation */}
-                      <div className="flex border-b border-border">
+                      <div className="flex shrink-0 border-b border-border">
                         <button
                           className={cn(
                             "flex-1 py-3 text-sm font-medium transition-colors relative",
@@ -444,7 +501,7 @@ export function FinderBrowseScreen() {
                       </div>
 
                       {/* Tab Content */}
-                      <div className="p-4">
+                      <div className="min-h-0 flex-1 overflow-y-auto p-4">
                         {activeTab === "overview" ? (
                           <div className="space-y-3">
                             {/* Location Row */}
@@ -507,12 +564,12 @@ export function FinderBrowseScreen() {
                           </div>
                         )}
                       </div>
-                    </>
+                    </div>
                   )}
                   
                   {/* Minimal info for non-active cards */}
                   {!isActive && (
-                    <div className="p-3">
+                    <div className="shrink-0 p-3">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <MapPin className="w-4 h-4" />
                         <span className="truncate">{listing.location}</span>
@@ -524,6 +581,7 @@ export function FinderBrowseScreen() {
             )
           })}
           </div>
+        </div>
         </div>
       </div>
 
@@ -596,6 +654,9 @@ export function FinderBrowseScreen() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+      )}
+      <FinderCategoryFilterSheet open={filterOpen} onOpenChange={setFilterOpen} />
     </div>
   )
 }

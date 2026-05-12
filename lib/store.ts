@@ -49,8 +49,11 @@ export function listingShowsInFinderBrowse(
   chopes: ChopeRecord[],
   selectedCategories: Category[]
 ): boolean {
+  const categoryOk =
+    selectedCategories.length === 0 ||
+    selectedCategories.includes(listing.category)
   return (
-    selectedCategories.includes(listing.category) &&
+    categoryOk &&
     listing.status === "available" &&
     !listing.archived &&
     getRemaining(listing, chopes) > 0
@@ -70,7 +73,6 @@ export function listUrgentBannerCandidates(
 type Screen =
   | "welcome"
   | "role-select"
-  | "finder-categories"
   | "finder-browse"
   | "giver-upload"
   | "giver-details"

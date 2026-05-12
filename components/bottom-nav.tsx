@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 
 const navItems = [
   { id: "home", icon: Home, label: "Home", screen: "welcome" as const },
-  { id: "browse", icon: Search, label: "Browse", screen: "finder-categories" as const },
+  { id: "browse", icon: Search, label: "Browse", screen: "finder-browse" as const },
   { id: "list", icon: PlusCircle, label: "List", screen: "giver-upload" as const },
   { id: "activity", icon: Bell, label: "Activity", screen: "my-reservations" as const },
   { id: "profile", icon: User, label: "Profile", screen: "my-listings" as const },

@@ -77,7 +77,7 @@ export function MyReservationsScreen() {
               <Button
                 variant="link"
                 className="mt-2"
-                onClick={() => setScreen("finder-categories")}
+                onClick={() => setScreen("finder-browse")}
               >
                 Browse listings
               </Button>

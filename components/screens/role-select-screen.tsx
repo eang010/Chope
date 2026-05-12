@@ -6,14 +6,16 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ArrowLeft, Gift, Search, Sparkles, Heart } from "lucide-react"
 
 export function RoleSelectScreen() {
-  const { setScreen, setRole } = useAppStore()
+  const { setScreen, setRole, setCurrentListingIndex } = useAppStore()
 
   const handleRoleSelect = (role: "giver" | "finder") => {
     setRole(role)
     if (role === "giver") {
       setScreen("giver-upload")
     } else {
-      setScreen("finder-categories")
+      setCurrentListingIndex(0)
+      useAppStore.setState({ selectedCategories: [] })
+      setScreen("finder-browse")
     }
   }
 

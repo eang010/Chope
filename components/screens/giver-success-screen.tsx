@@ -27,7 +27,9 @@ export function GiverSuccessScreen() {
 
   const handleBrowse = () => {
     setRole("finder")
-    setScreen("finder-categories")
+    useAppStore.setState({ selectedCategories: [] })
+    useAppStore.getState().setCurrentListingIndex(0)
+    setScreen("finder-browse")
   }
 
   return (

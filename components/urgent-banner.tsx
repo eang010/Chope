@@ -81,7 +81,10 @@ export function UrgentBanner() {
 
   const handleViewListing = () => {
     setRole("finder")
-    if (!selectedCategories.includes(featured.category)) {
+    if (
+      selectedCategories.length > 0 &&
+      !selectedCategories.includes(featured.category)
+    ) {
       toggleCategory(featured.category)
     }
     setScreen("finder-browse")

@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils"
 import { useAppStore } from "@/lib/store"
 import { WelcomeScreen } from "@/components/screens/welcome-screen"
 import { RoleSelectScreen } from "@/components/screens/role-select-screen"
-import { FinderCategoriesScreen } from "@/components/screens/finder-categories-screen"
 import { FinderBrowseScreen } from "@/components/screens/finder-browse-screen"
 import { GiverUploadScreen } from "@/components/screens/giver-upload-screen"
 import { GiverDetailsScreen } from "@/components/screens/giver-details-screen"
@@ -18,7 +17,7 @@ import { UrgentBanner } from "@/components/urgent-banner"
 import { BottomNav } from "@/components/bottom-nav"
 import { PocAccountSwitcher } from "@/components/poc-account-switcher"
 
-const HIDE_BOTTOM_NAV_SCREENS = new Set(["welcome", "role-select"])
+const HIDE_BOTTOM_NAV_SCREENS = new Set(["welcome"])
 
 export function ShareSpaceApp() {
   const screen = useAppStore((state) => state.screen)
@@ -30,8 +29,6 @@ export function ShareSpaceApp() {
         return <WelcomeScreen />
       case "role-select":
         return <RoleSelectScreen />
-      case "finder-categories":
-        return <FinderCategoriesScreen />
       case "finder-browse":
         return <FinderBrowseScreen />
       case "giver-upload":
@@ -56,12 +53,12 @@ export function ShareSpaceApp() {
   }
 
   return (
-    <div className="relative flex min-h-dvh min-h-[100dvh] flex-col bg-background">
+    <div className="relative flex min-h-0 w-full flex-1 flex-col bg-background">
       {screen !== "welcome" && <PocAccountSwitcher variant="dock" />}
       <UrgentBanner />
       <main
         className={cn(
-          "w-full min-h-0 flex-1 pt-[env(safe-area-inset-top,0px)]",
+          "flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto pt-[env(safe-area-inset-top,0px)]",
           showBottomNav &&
             "pb-[calc(env(safe-area-inset-bottom,0px)+7rem)]"
         )}
