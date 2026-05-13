@@ -53,14 +53,17 @@ export function ShareSpaceApp() {
   }
 
   return (
-    <div className="relative flex min-h-0 w-full flex-1 flex-col bg-background">
+    <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-background">
       {screen !== "welcome" && <PocAccountSwitcher variant="dock" />}
       <UrgentBanner />
       <main
         className={cn(
-          "flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto pt-[env(safe-area-inset-top,0px)]",
+          "flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden pt-[env(safe-area-inset-top,0px)]",
+          screen === "finder-browse"
+            ? "overflow-y-hidden"
+            : "overflow-y-auto",
           showBottomNav &&
-            "pb-[calc(env(safe-area-inset-bottom,0px)+7rem)]"
+            "pb-[calc(env(safe-area-inset-bottom,0px)+5.75rem)]"
         )}
       >
         {renderScreen()}

@@ -43,7 +43,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-background text-foreground">
         {children}
         <ServiceWorkerRegister />
         {process.env.NODE_ENV === 'production' && <Analytics />}

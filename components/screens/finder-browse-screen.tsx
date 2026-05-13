@@ -35,8 +35,13 @@ const CAROUSEL_GAP = 16
 
 function cardWidthFromContainer(containerW: number) {
   if (containerW <= 0) return 320
-  const capped = Math.min(containerW, 520)
-  return Math.min(448, Math.max(280, Math.floor(capped * 0.88)))
+  const capped = Math.min(containerW, 640)
+  // Full-bleed card width on phones; tablet+ keeps side margins via carousel padding
+  if (capped < 640) {
+    return Math.max(280, capped)
+  }
+  const wide = Math.min(containerW, 520)
+  return Math.min(448, Math.max(320, Math.floor(wide * 0.88)))
 }
 
 export function FinderBrowseScreen() {
@@ -321,11 +326,11 @@ export function FinderBrowseScreen() {
   )
 
   return (
-    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col">
       {filteredListings.length === 0 ? (
-        <div className="flex min-h-0 flex-1 flex-col bg-background">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-background">
           {browseHeader()}
-          <div className="flex flex-1 flex-col items-center justify-center px-6 pb-6 text-center">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 pb-6 text-center">
             <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
               <Hand className="w-10 h-10 text-muted-foreground" />
             </div>
@@ -341,9 +346,9 @@ export function FinderBrowseScreen() {
           </div>
         </div>
       ) : currentListingIndex >= filteredListings.length ? (
-        <div className="flex min-h-0 flex-1 flex-col bg-background">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-background">
           {browseHeader()}
-          <div className="flex flex-1 flex-col items-center justify-center px-6 pb-6 text-center">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 pb-6 text-center">
             <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-6">
               <span className="text-4xl">🎉</span>
             </div>
@@ -385,17 +390,17 @@ export function FinderBrowseScreen() {
           </div>
         </div>
       ) : (
-    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col bg-muted/30">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col bg-background">
       {showSuccess && (
         <div className="fixed top-[calc(env(safe-area-inset-top,0px)+4rem)] left-1/2 z-50 -translate-x-1/2 rounded-full bg-primary px-6 py-3 text-primary-foreground shadow-lg animate-in fade-in slide-in-from-top-2">
           Choped! Coordinate pickup offline.
         </div>
       )}
 
-      <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
         {browseHeader({ showCounter: true })}
 
-        <div className="mx-auto flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden px-0 sm:px-4">
+        <div className="mx-auto flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden px-0 pb-0 sm:px-4 sm:pb-2">
           <p className="sr-only">
             Listing carousel. Scroll left and right, or use the left and right
             arrow keys to move between listings.
@@ -406,14 +411,14 @@ export function FinderBrowseScreen() {
             role="region"
             aria-roledescription="carousel"
             aria-label="Browse listings"
-            className="flex min-h-0 min-w-0 flex-1 flex-row items-stretch gap-0 overflow-x-auto overflow-y-hidden overscroll-x-contain px-2 pb-40 pt-2 scrollbar-hide outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-muted/30 snap-x snap-proximity touch-pan-x"
+            className="flex min-h-0 min-w-0 flex-1 flex-row items-stretch gap-0 overflow-x-auto overflow-y-hidden overscroll-x-contain px-0 pb-0 pt-0 scrollbar-hide outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background snap-x snap-proximity touch-pan-x sm:px-2 sm:pb-2 sm:pt-2"
             style={{
               scrollbarWidth: "none",
               msOverflowStyle: "none",
               WebkitOverflowScrolling: "touch",
             }}
           >
-          <div className="flex h-full min-h-0 flex-row gap-4 py-1 pl-1 pr-1">
+          <div className="flex h-full min-h-0 flex-row gap-4 py-0 pl-0 pr-0 sm:py-1 sm:pl-1 sm:pr-1">
           {filteredListings.map((listing, index) => {
             const isActive = index === currentListingIndex
             const spotsLeft = getRemaining(listing, chopes)
@@ -430,8 +435,10 @@ export function FinderBrowseScreen() {
               <div
                 key={listing.id}
                 className={cn(
-                  "flex h-full shrink-0 snap-center justify-center transition-all duration-300 ease-out",
-                  isActive ? "z-10 scale-100 opacity-100" : "z-0 scale-[0.97] opacity-50"
+                  "flex shrink-0 snap-center justify-center transition-all duration-300 ease-out",
+                  isActive
+                    ? "h-full z-10 scale-100 opacity-100"
+                    : "z-0 h-auto max-h-[92%] scale-[0.97] opacity-50 self-center sm:h-full sm:max-h-none sm:self-stretch"
                 )}
                 style={{ width: carouselLayout.cardW || 320 }}
                 onClick={() => handleCardClick(index)}
@@ -439,12 +446,24 @@ export function FinderBrowseScreen() {
                 {/* Google Maps Style Card */}
                 <Card
                   className={cn(
-                    "flex h-full max-h-full w-full max-w-md flex-col overflow-hidden bg-card shadow-xl cursor-pointer transition-shadow",
-                    isActive && "shadow-2xl"
+                    "flex max-h-full w-full flex-col overflow-hidden border-0 bg-card p-0 py-0 gap-0 rounded-xl cursor-pointer transition-shadow",
+                    // Tight shadow (negative spread) so it doesn’t read as a tall gap above Skip / Chope
+                    "shadow-[0_1px_0_rgba(0,0,0,0.04),0_6px_18px_-10px_rgba(0,0,0,0.12)]",
+                    "sm:max-w-md",
+                    isActive
+                      ? "h-full shadow-[0_1px_0_rgba(0,0,0,0.05),0_8px_22px_-10px_rgba(0,0,0,0.16)]"
+                      : "h-auto sm:self-auto"
                   )}
                 >
-                  {/* Hero Image */}
-                  <div className="relative h-36 shrink-0 overflow-hidden bg-muted sm:h-44">
+                  {/* Hero — large aspect crop when active (matches earlier “photo-forward” sizing) */}
+                  <div
+                    className={cn(
+                      "relative w-full min-w-0 shrink-0 overflow-hidden bg-muted",
+                      isActive
+                        ? "aspect-[4/3] min-h-[13rem] max-h-[min(58vh,23rem)] sm:aspect-[16/10] sm:min-h-[14rem] sm:max-h-[min(52vh,24rem)]"
+                        : "h-40 sm:h-44"
+                    )}
+                  >
                     <img
                       src={
                         isActive && heroPreviewUrl
@@ -490,7 +509,7 @@ export function FinderBrowseScreen() {
                       <div className="flex shrink-0 border-b border-border">
                         <button
                           className={cn(
-                            "flex-1 py-3 text-sm font-medium transition-colors relative",
+                            "flex-1 py-2.5 text-sm font-medium transition-colors relative sm:py-3",
                             activeTab === "overview" 
                               ? "text-primary" 
                               : "text-muted-foreground hover:text-foreground"
@@ -504,7 +523,7 @@ export function FinderBrowseScreen() {
                         </button>
                         <button
                           className={cn(
-                            "flex-1 py-3 text-sm font-medium transition-colors relative",
+                            "flex-1 py-2.5 text-sm font-medium transition-colors relative sm:py-3",
                             activeTab === "photos" 
                               ? "text-primary" 
                               : "text-muted-foreground hover:text-foreground"
@@ -519,7 +538,7 @@ export function FinderBrowseScreen() {
                       </div>
 
                       {/* Tab Content */}
-                      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                      <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
                         {activeTab === "overview" ? (
                           <div className="space-y-3">
                             
@@ -622,20 +641,24 @@ export function FinderBrowseScreen() {
         </div>
       </div>
 
-      {/* Action buttons — cleared from bottom nav + home indicator */}
-      <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] left-0 right-0 z-30 px-6">
-        <div className="mx-auto flex max-w-sm gap-3">
+      {/* Action dock: height hugs buttons; thin top padding so the strip isn’t a tall grey slab */}
+      <div
+        role="toolbar"
+        aria-label="Listing actions"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] left-0 right-0 z-30 border-t border-border/10 bg-background/70 py-1.5 backdrop-blur-md supports-[backdrop-filter]:bg-background/55 dark:border-border/15 dark:bg-background/50 sm:bottom-[calc(env(safe-area-inset-bottom,0px)+4.75rem)]"
+      >
+        <div className="mx-auto flex max-w-md items-stretch gap-2 px-3 sm:max-w-sm sm:gap-3 sm:px-4">
           <Button
             variant="outline"
             size="lg"
-            className="flex-1 h-12"
+            className="h-11 flex-1 sm:h-12"
             onClick={handleSkip}
           >
             Skip
           </Button>
           <Button
             size="lg"
-            className="flex-1 h-12"
+            className="h-11 flex-1 sm:h-12"
             onClick={handleChope}
             disabled={
               !currentListing ||
@@ -692,8 +715,8 @@ export function FinderBrowseScreen() {
         </DialogContent>
       </Dialog>
     </div>
-      )}
-      <FinderCategoryFilterSheet open={filterOpen} onOpenChange={setFilterOpen} />
+    )}
+    <FinderCategoryFilterSheet open={filterOpen} onOpenChange={setFilterOpen} />
     </div>
   )
 }

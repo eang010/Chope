@@ -40,7 +40,7 @@ export function GiverLocationScreen() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col px-6 py-8 bg-background">
+    <div className="flex min-h-0 flex-1 flex-col px-6 py-6 sm:py-8 bg-background">
       <Button
         variant="ghost"
         size="sm"
