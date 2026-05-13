@@ -12,13 +12,13 @@ import { Badge } from "@/components/ui/badge"
 import {
   ArrowLeft,
   MapPin,
-  Clock,
   User,
   MessageCircle,
   Hand,
   ListFilter,
+  Timer,
 } from "lucide-react"
-import { cn, formatListingDatetimeDisplay } from "@/lib/utils"
+import { cn, listingDeadlineMeterState } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { Progress } from "@/components/ui/progress"
 import { FinderCategoryFilterSheet } from "@/components/finder-category-filter"
 
 const CAROUSEL_GAP = 16
@@ -88,6 +89,15 @@ export function FinderBrowseScreen() {
   }, [selectedCategoriesKey, setCurrentListingIndex])
 
   const currentListing = filteredListings[currentListingIndex]
+
+  const [deadlineNow, setDeadlineNow] = useState(() => new Date())
+  const activeUntilKey = currentListing?.availableUntil?.trim() ?? ""
+  useEffect(() => {
+    setDeadlineNow(new Date())
+    if (!activeUntilKey) return undefined
+    const id = setInterval(() => setDeadlineNow(new Date()), 60_000)
+    return () => clearInterval(id)
+  }, [currentListingIndex, activeUntilKey])
 
   const alreadyChopedCurrent =
     !!currentListing &&
@@ -407,6 +417,14 @@ export function FinderBrowseScreen() {
           {filteredListings.map((listing, index) => {
             const isActive = index === currentListingIndex
             const spotsLeft = getRemaining(listing, chopes)
+            const deadlineMeter =
+              isActive && listing.availableUntil?.trim()
+                ? listingDeadlineMeterState(
+                    listing.availableFrom,
+                    listing.availableUntil,
+                    deadlineNow
+                  )
+                : null
 
             return (
               <div
@@ -504,23 +522,39 @@ export function FinderBrowseScreen() {
                       <div className="min-h-0 flex-1 overflow-y-auto p-4">
                         {activeTab === "overview" ? (
                           <div className="space-y-3">
+                            
+                            {deadlineMeter ? (
+                              <div className="flex items-start gap-3">
+                                <Timer
+                                  className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5"
+                                  aria-hidden
+                                />
+                                <div
+                                  className="min-w-0 flex-1 space-y-2"
+                                  role="group"
+                                  aria-label="Pickup window time remaining"
+                                  aria-valuenow={Math.round(deadlineMeter.percent)}
+                                  aria-valuemin={0}
+                                  aria-valuemax={100}
+                                >
+                                  <Progress
+                                    value={deadlineMeter.percent}
+                                    className={cn(
+                                      deadlineMeter.percent < 20 &&
+                                        "bg-destructive/20 [&_[data-slot=progress-indicator]]:bg-destructive"
+                                    )}
+                                  />
+                                  <p className="text-sm text-muted-foreground">
+                                    {deadlineMeter.headline}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
                             {/* Location Row */}
                             <div className="flex items-center gap-3">
                               <MapPin className="w-5 h-5 text-muted-foreground shrink-0" />
                               <span className="text-sm text-foreground">{listing.location}</span>
                             </div>
-                            
-                            {/* Availability Row */}
-                            <div className="flex items-center gap-3">
-                              <Clock className="w-5 h-5 text-muted-foreground shrink-0" />
-                              <span className="text-sm text-foreground">
-                                Available from {formatListingDatetimeDisplay(listing.availableFrom)}
-                                {listing.availableUntil &&
-                                  ` until ${formatListingDatetimeDisplay(listing.availableUntil)}`}
-                              </span>
-                            </div>
-                            
-                            
                             {/* Owner Row */}
                             <div className="flex items-center gap-3">
                               <User className="w-5 h-5 text-muted-foreground shrink-0" />
