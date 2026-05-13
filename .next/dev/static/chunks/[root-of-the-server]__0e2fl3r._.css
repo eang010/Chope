@@ -1579,10 +1579,6 @@
     scroll-snap-type: x var(--tw-scroll-snap-strictness);
   }
 
-  .snap-y {
-    scroll-snap-type: y var(--tw-scroll-snap-strictness);
-  }
-
   .snap-proximity {
     --tw-scroll-snap-strictness: proximity;
   }
@@ -1833,10 +1829,6 @@
     overscroll-behavior-x: contain;
   }
 
-  .overscroll-y-contain {
-    overscroll-behavior-y: contain;
-  }
-
   .rounded-\[2px\] {
     border-radius: 2px;
   }
@@ -2003,6 +1995,16 @@
   @supports (color: color-mix(in lab, red, red)) {
     .border-destructive\/30 {
       border-color: color-mix(in oklab, var(--destructive) 30%, transparent);
+    }
+  }
+
+  .border-destructive\/40 {
+    border-color: var(--destructive);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .border-destructive\/40 {
+      border-color: color-mix(in oklab, var(--destructive) 40%, transparent);
     }
   }
 
@@ -3552,6 +3554,18 @@
   }
 
   @media (hover: hover) {
+    .hover\:bg-destructive\/10:hover {
+      background-color: var(--destructive);
+    }
+
+    @supports (color: color-mix(in lab, red, red)) {
+      .hover\:bg-destructive\/10:hover {
+        background-color: color-mix(in oklab, var(--destructive) 10%, transparent);
+      }
+    }
+  }
+
+  @media (hover: hover) {
     .hover\:bg-destructive\/90:hover {
       background-color: var(--destructive);
     }
@@ -3644,6 +3658,12 @@
   @media (hover: hover) {
     .hover\:text-accent-foreground:hover {
       color: var(--accent-foreground);
+    }
+  }
+
+  @media (hover: hover) {
+    .hover\:text-destructive:hover {
+      color: var(--destructive);
     }
   }
 

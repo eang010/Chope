@@ -2,19 +2,13 @@
 
 import { useState } from "react"
 import { useAppStore } from "@/lib/store"
-import { datetimeLocalFromStored } from "@/lib/utils"
+import { datetimeLocalFromStored, listingDatetimeForStorage, formatListingDatetimeDisplay } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft, ArrowRight, Clock } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { FlowProgressTracker } from "@/components/flow-progress-tracker"
-
-function formatLocalSummary(value: string): string {
-  const v = value.trim()
-  if (!v) return ""
-  return v.replace("T", " ")
-}
 
 export function GiverAvailabilityScreen() {
   const { setScreen, updateNewListing, newListing } = useAppStore()
@@ -41,8 +35,8 @@ export function GiverAvailabilityScreen() {
     const until = availableUntil.trim()
     if (isUrgent && !until) return
     updateNewListing({
-      availableFrom: from,
-      availableUntil: until || undefined,
+      availableFrom: listingDatetimeForStorage(from),
+      availableUntil: until ? listingDatetimeForStorage(until) : undefined,
     })
     setScreen("giver-location")
   }
@@ -113,7 +107,7 @@ export function GiverAvailabilityScreen() {
                 <div className="mt-4 space-y-2">
                   <Label className="text-muted-foreground">Selected window</Label>
                   <div className="rounded-md border border-border bg-background px-3 py-2 text-sm">
-                    {`${formatLocalSummary(availableFrom)} → ${formatLocalSummary(availableUntil)}`}
+                    {`${formatListingDatetimeDisplay(availableFrom)} → ${formatListingDatetimeDisplay(availableUntil)}`}
                   </div>
                 </div>
               </CardContent>
@@ -142,7 +136,7 @@ export function GiverAvailabilityScreen() {
                 />
                 <p className="text-xs text-muted-foreground">
                   {availableUntil.trim()
-                    ? `Selected: ${formatLocalSummary(availableUntil)}`
+                    ? `Selected: ${formatListingDatetimeDisplay(availableUntil)}`
                     : "Leave empty if there’s no deadline"}
                 </p>
               </div>

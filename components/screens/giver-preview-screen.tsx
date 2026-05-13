@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, MapPin, Clock, User, Edit2, Send, AlertTriangle } from "lucide-react"
 import { FlowProgressTracker } from "@/components/flow-progress-tracker"
+import { listingDatetimeForStorage, formatListingDatetimeDisplay } from "@/lib/utils"
 
 export function GiverPreviewScreen() {
   const { setScreen, newListing, addListing, resetNewListing, sessionUserId } =
@@ -28,8 +29,10 @@ export function GiverPreviewScreen() {
       category: newListing.category!,
       images: newListing.images || ["/placeholder.svg?height=400&width=400"],
       location: newListing.location!,
-      availableFrom: newListing.availableFrom!,
-      availableUntil: newListing.availableUntil,
+      availableFrom: listingDatetimeForStorage(newListing.availableFrom!),
+      availableUntil: newListing.availableUntil
+        ? listingDatetimeForStorage(newListing.availableUntil)
+        : undefined,
       ownerId: user.id,
       ownerName: user.displayName,
       ownerDepartment: user.department,
@@ -127,8 +130,9 @@ export function GiverPreviewScreen() {
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Clock className="w-4 h-4" />
                 <span>
-                  Available from {newListing.availableFrom}
-                  {newListing.availableUntil && ` until ${newListing.availableUntil}`}
+                  Available from {formatListingDatetimeDisplay(newListing.availableFrom)}
+                  {newListing.availableUntil &&
+                    ` until ${formatListingDatetimeDisplay(newListing.availableUntil)}`}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">

@@ -111,6 +111,8 @@ interface AppState {
   /** Finder removes their chope; frees a slot for the listing (same as never choped). */
   releaseChope: (chopeId: string) => void
   archiveListing: (id: string) => void
+  /** Permanently remove listing and all chopes for it (any chope count). */
+  deleteListing: (id: string) => void
   reviveListing: (id: string, newQuantity: number) => void
   dismissUrgentBanner: () => void
   goNextUrgentBanner: () => void
@@ -131,7 +133,7 @@ const mockListings: Listing[] = [
       "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQvdfzrANLiKhCF-xX0YeAdBDjQe0fOIjwcFQ&s",
     ],
     location: "PDD Booth",
-    availableFrom: "2026-05-25",
+    availableFrom: "2026-05-25T14:00",
     availableUntil: "2026-05-25T17:00",
     ownerId: "tester-a",
     ownerName: "Chope Squad",
@@ -176,8 +178,8 @@ const mockListings: Listing[] = [
       "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop",
     ],
     location: "Level 3, Pantry Area",
-    availableFrom: "2024-01-15",
-    availableUntil: "2024-01-15T16:00",
+    availableFrom: "2024-01-15T15:00",
+    availableUntil: "2024-01-15T16:30",
     ownerId: "tester-a",
     ownerName: "Chope Squad",
     ownerDepartment: "IT Division",
@@ -291,9 +293,9 @@ const mockListings: Listing[] = [
     ],
     location: "Level 2, Pantry",
     availableFrom: "2024-01-14",
-    ownerId: "user10",
-    ownerName: "Benjamin Koh",
-    ownerDepartment: "Legal",
+    ownerId: "tester-a",
+    ownerName: "Chope Squad",
+    ownerDepartment: "IT Division",
     isUrgent: false,
     createdAt: "2024-01-14",
     status: "available",
@@ -450,6 +452,17 @@ export const useAppStore = create<AppState>((set, get) => ({
         urgentFeaturedId = c[0]?.id ?? null
       }
       return { listings, urgentFeaturedId }
+    }),
+  deleteListing: (id) =>
+    set((state) => {
+      const listings = state.listings.filter((l) => l.id !== id)
+      const chopes = state.chopes.filter((c) => c.listingId !== id)
+      let urgentFeaturedId = state.urgentFeaturedId
+      if (urgentFeaturedId === id) {
+        const c = listUrgentBannerCandidates(listings, chopes)
+        urgentFeaturedId = c[0]?.id ?? null
+      }
+      return { listings, chopes, urgentFeaturedId }
     }),
   reviveListing: (id, newQuantity) => {
     const q = Math.max(1, Math.floor(newQuantity))

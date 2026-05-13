@@ -6,7 +6,11 @@ __turbopack_context__.s([
     "cn",
     ()=>cn,
     "datetimeLocalFromStored",
-    ()=>datetimeLocalFromStored
+    ()=>datetimeLocalFromStored,
+    "formatListingDatetimeDisplay",
+    ()=>formatListingDatetimeDisplay,
+    "listingDatetimeForStorage",
+    ()=>listingDatetimeForStorage
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$clsx$2f$dist$2f$clsx$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/clsx/dist/clsx.mjs [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$tailwind$2d$merge$2f$dist$2f$bundle$2d$mjs$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/tailwind-merge/dist/bundle-mjs.mjs [app-client] (ecmascript)");
@@ -15,10 +19,21 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$tailwind$2d$
 function cn(...inputs) {
     return (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$tailwind$2d$merge$2f$dist$2f$bundle$2d$mjs$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["twMerge"])((0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$clsx$2f$dist$2f$clsx$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["clsx"])(inputs));
 }
+function formatListingDatetimeDisplay(value) {
+    if (!value?.trim()) return '';
+    return value.trim().replace('T', ' ');
+}
+function listingDatetimeForStorage(value) {
+    return formatListingDatetimeDisplay(value);
+}
 function datetimeLocalFromStored(value, role) {
     if (!value?.trim()) return '';
-    const s = value.trim();
+    let s = value.trim();
     const defaultTime = role === 'until' ? '23:59' : '00:00';
+    // Accept "YYYY-MM-DD HH:mm" (and optional seconds) from stored listings
+    if (/^\d{4}-\d{2}-\d{2}\s/.test(s)) {
+        s = s.replace(/^(\d{4}-\d{2}-\d{2})\s+/, '$1T');
+    }
     if (s.includes('T')) {
         const [d, ...rest] = s.split('T');
         const datePart = d.slice(0, 10);
@@ -115,7 +130,7 @@ const mockListings = [
             "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQvdfzrANLiKhCF-xX0YeAdBDjQe0fOIjwcFQ&s"
         ],
         location: "PDD Booth",
-        availableFrom: "2026-05-25",
+        availableFrom: "2026-05-25T14:00",
         availableUntil: "2026-05-25T17:00",
         ownerId: "tester-a",
         ownerName: "Chope Squad",
@@ -158,8 +173,8 @@ const mockListings = [
             "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop"
         ],
         location: "Level 3, Pantry Area",
-        availableFrom: "2024-01-15",
-        availableUntil: "2024-01-15T16:00",
+        availableFrom: "2024-01-15T15:00",
+        availableUntil: "2024-01-15T16:30",
         ownerId: "tester-a",
         ownerName: "Chope Squad",
         ownerDepartment: "IT Division",
@@ -268,9 +283,9 @@ const mockListings = [
         ],
         location: "Level 2, Pantry",
         availableFrom: "2024-01-14",
-        ownerId: "user10",
-        ownerName: "Benjamin Koh",
-        ownerDepartment: "Legal",
+        ownerId: "tester-a",
+        ownerName: "Chope Squad",
+        ownerDepartment: "IT Division",
         isUrgent: false,
         createdAt: "2024-01-14",
         status: "available",
@@ -443,6 +458,20 @@ const useAppStore = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_mod
                 }
                 return {
                     listings,
+                    urgentFeaturedId
+                };
+            }),
+        deleteListing: (id)=>set((state)=>{
+                const listings = state.listings.filter((l)=>l.id !== id);
+                const chopes = state.chopes.filter((c)=>c.listingId !== id);
+                let urgentFeaturedId = state.urgentFeaturedId;
+                if (urgentFeaturedId === id) {
+                    const c = listUrgentBannerCandidates(listings, chopes);
+                    urgentFeaturedId = c[0]?.id ?? null;
+                }
+                return {
+                    listings,
+                    chopes,
                     urgentFeaturedId
                 };
             }),
@@ -3010,7 +3039,8 @@ function FinderBrowseScreen() {
                                                                                             className: "text-sm text-foreground",
                                                                                             children: [
                                                                                                 "Available from ",
-                                                                                                listing.availableFrom
+                                                                                                (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatListingDatetimeDisplay"])(listing.availableFrom),
+                                                                                                listing.availableUntil && ` until ${(0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatListingDatetimeDisplay"])(listing.availableUntil)}`
                                                                                             ]
                                                                                         }, void 0, true, {
                                                                                             fileName: "[project]/components/screens/finder-browse-screen.tsx",
@@ -3030,7 +3060,7 @@ function FinderBrowseScreen() {
                                                                                             className: "w-5 h-5 text-muted-foreground shrink-0"
                                                                                         }, void 0, false, {
                                                                                             fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                                                                            lineNumber: 523,
+                                                                                            lineNumber: 526,
                                                                                             columnNumber: 31
                                                                                         }, this),
                                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -3038,13 +3068,13 @@ function FinderBrowseScreen() {
                                                                                             children: listing.ownerName
                                                                                         }, void 0, false, {
                                                                                             fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                                                                            lineNumber: 524,
+                                                                                            lineNumber: 527,
                                                                                             columnNumber: 31
                                                                                         }, this)
                                                                                     ]
                                                                                 }, void 0, true, {
                                                                                     fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                                                                    lineNumber: 522,
+                                                                                    lineNumber: 525,
                                                                                     columnNumber: 29
                                                                                 }, this),
                                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3054,12 +3084,12 @@ function FinderBrowseScreen() {
                                                                                         children: listing.description
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                                                                        lineNumber: 529,
+                                                                                        lineNumber: 532,
                                                                                         columnNumber: 31
                                                                                     }, this)
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                                                                    lineNumber: 528,
+                                                                                    lineNumber: 531,
                                                                                     columnNumber: 29
                                                                                 }, this)
                                                                             ]
@@ -3085,18 +3115,18 @@ function FinderBrowseScreen() {
                                                                                         draggable: false
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                                                                        lineNumber: 555,
+                                                                                        lineNumber: 558,
                                                                                         columnNumber: 35
                                                                                     }, this)
                                                                                 }, imgIndex, false, {
                                                                                     fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                                                                    lineNumber: 541,
+                                                                                    lineNumber: 544,
                                                                                     columnNumber: 33
                                                                                 }, this);
                                                                             })
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                                                            lineNumber: 535,
+                                                                            lineNumber: 538,
                                                                             columnNumber: 27
                                                                         }, this)
                                                                     }, void 0, false, {
@@ -3119,7 +3149,7 @@ function FinderBrowseScreen() {
                                                                             className: "w-4 h-4"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                                                            lineNumber: 574,
+                                                                            lineNumber: 577,
                                                                             columnNumber: 25
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -3127,18 +3157,18 @@ function FinderBrowseScreen() {
                                                                             children: listing.location
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                                                            lineNumber: 575,
+                                                                            lineNumber: 578,
                                                                             columnNumber: 25
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                                                    lineNumber: 573,
+                                                                    lineNumber: 576,
                                                                     columnNumber: 23
                                                                 }, this)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                                                lineNumber: 572,
+                                                                lineNumber: 575,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
@@ -3188,7 +3218,7 @@ function FinderBrowseScreen() {
                                     children: "Skip"
                                 }, void 0, false, {
                                     fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                    lineNumber: 591,
+                                    lineNumber: 594,
                                     columnNumber: 11
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -3201,25 +3231,25 @@ function FinderBrowseScreen() {
                                             className: "w-5 h-5 mr-2"
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                            lineNumber: 609,
+                                            lineNumber: 612,
                                             columnNumber: 13
                                         }, this),
                                         alreadyChopedCurrent ? "Choped" : remainingCurrent <= 0 ? "Full" : "Chope!"
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                    lineNumber: 599,
+                                    lineNumber: 602,
                                     columnNumber: 11
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                            lineNumber: 590,
+                            lineNumber: 593,
                             columnNumber: 9
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                        lineNumber: 589,
+                        lineNumber: 592,
                         columnNumber: 7
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Dialog"], {
@@ -3236,20 +3266,20 @@ function FinderBrowseScreen() {
                                             children: "Chope this item"
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                            lineNumber: 629,
+                                            lineNumber: 632,
                                             columnNumber: 13
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogDescription"], {
                                             children: "Add an optional note for the giver. Arrange pickup offline—there’s no accept step in the app."
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                            lineNumber: 630,
+                                            lineNumber: 633,
                                             columnNumber: 13
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                    lineNumber: 628,
+                                    lineNumber: 631,
                                     columnNumber: 11
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3262,7 +3292,7 @@ function FinderBrowseScreen() {
                                             className: "min-h-[100px]"
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                            lineNumber: 636,
+                                            lineNumber: 639,
                                             columnNumber: 13
                                         }, this),
                                         reserveError && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -3270,13 +3300,13 @@ function FinderBrowseScreen() {
                                             children: reserveError
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                            lineNumber: 643,
+                                            lineNumber: 646,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                    lineNumber: 635,
+                                    lineNumber: 638,
                                     columnNumber: 11
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogFooter"], {
@@ -3287,7 +3317,7 @@ function FinderBrowseScreen() {
                                             children: "Cancel"
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                            lineNumber: 647,
+                                            lineNumber: 650,
                                             columnNumber: 13
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -3297,31 +3327,31 @@ function FinderBrowseScreen() {
                                                     className: "w-4 h-4 mr-2"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                                    lineNumber: 651,
+                                                    lineNumber: 654,
                                                     columnNumber: 15
                                                 }, this),
                                                 "Chope"
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                            lineNumber: 650,
+                                            lineNumber: 653,
                                             columnNumber: 13
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                                    lineNumber: 646,
+                                    lineNumber: 649,
                                     columnNumber: 11
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                            lineNumber: 627,
+                            lineNumber: 630,
                             columnNumber: 9
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                        lineNumber: 620,
+                        lineNumber: 623,
                         columnNumber: 7
                     }, this)
                 ]
@@ -3335,7 +3365,7 @@ function FinderBrowseScreen() {
                 onOpenChange: setFilterOpen
             }, void 0, false, {
                 fileName: "[project]/components/screens/finder-browse-screen.tsx",
-                lineNumber: 659,
+                lineNumber: 662,
                 columnNumber: 7
             }, this)
         ]
@@ -4371,11 +4401,6 @@ var _s = __turbopack_context__.k.signature();
 ;
 ;
 ;
-function formatLocalSummary(value) {
-    const v = value.trim();
-    if (!v) return "";
-    return v.replace("T", " ");
-}
 function GiverAvailabilityScreen() {
     _s();
     const { setScreen, updateNewListing, newListing } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAppStore"])();
@@ -4403,8 +4428,8 @@ function GiverAvailabilityScreen() {
         const until = availableUntil.trim();
         if (isUrgent && !until) return;
         updateNewListing({
-            availableFrom: from,
-            availableUntil: until || undefined
+            availableFrom: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["listingDatetimeForStorage"])(from),
+            availableUntil: until ? (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["listingDatetimeForStorage"])(until) : undefined
         });
         setScreen("giver-location");
     };
@@ -4423,14 +4448,14 @@ function GiverAvailabilityScreen() {
                         className: "w-4 h-4 mr-2"
                     }, void 0, false, {
                         fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                        lineNumber: 62,
+                        lineNumber: 56,
                         columnNumber: 9
                     }, this),
                     "Back"
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                lineNumber: 56,
+                lineNumber: 50,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4445,7 +4470,7 @@ function GiverAvailabilityScreen() {
                                 className: "mb-4"
                             }, void 0, false, {
                                 fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                lineNumber: 68,
+                                lineNumber: 62,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
@@ -4453,7 +4478,7 @@ function GiverAvailabilityScreen() {
                                 children: "When is it available?"
                             }, void 0, false, {
                                 fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                lineNumber: 69,
+                                lineNumber: 63,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -4461,13 +4486,13 @@ function GiverAvailabilityScreen() {
                                 children: "Set the collection window for your item"
                             }, void 0, false, {
                                 fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                lineNumber: 72,
+                                lineNumber: 66,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                        lineNumber: 67,
+                        lineNumber: 61,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4485,7 +4510,7 @@ function GiverAvailabilityScreen() {
                                                     className: "w-5 h-5 text-destructive"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                    lineNumber: 82,
+                                                    lineNumber: 76,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4493,13 +4518,13 @@ function GiverAvailabilityScreen() {
                                                     children: "Urgent Collection"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                    lineNumber: 83,
+                                                    lineNumber: 77,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                            lineNumber: 81,
+                                            lineNumber: 75,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -4507,7 +4532,7 @@ function GiverAvailabilityScreen() {
                                             children: "This listing needs to be collected today. Set the pickup time window."
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                            lineNumber: 85,
+                                            lineNumber: 79,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4521,7 +4546,7 @@ function GiverAvailabilityScreen() {
                                                             children: "Available from"
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                            lineNumber: 92,
+                                                            lineNumber: 86,
                                                             columnNumber: 21
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -4532,13 +4557,13 @@ function GiverAvailabilityScreen() {
                                                             onChange: (e)=>setAvailableFrom(e.target.value)
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                            lineNumber: 93,
+                                                            lineNumber: 87,
                                                             columnNumber: 21
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                    lineNumber: 91,
+                                                    lineNumber: 85,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4549,7 +4574,7 @@ function GiverAvailabilityScreen() {
                                                             children: "Must collect by"
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                            lineNumber: 102,
+                                                            lineNumber: 96,
                                                             columnNumber: 21
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -4560,19 +4585,19 @@ function GiverAvailabilityScreen() {
                                                             onChange: (e)=>setAvailableUntil(e.target.value)
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                            lineNumber: 103,
+                                                            lineNumber: 97,
                                                             columnNumber: 21
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                    lineNumber: 101,
+                                                    lineNumber: 95,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                            lineNumber: 90,
+                                            lineNumber: 84,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4583,32 +4608,32 @@ function GiverAvailabilityScreen() {
                                                     children: "Selected window"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                    lineNumber: 114,
+                                                    lineNumber: 108,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                     className: "rounded-md border border-border bg-background px-3 py-2 text-sm",
-                                                    children: `${formatLocalSummary(availableFrom)} → ${formatLocalSummary(availableUntil)}`
+                                                    children: `${(0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatListingDatetimeDisplay"])(availableFrom)} → ${(0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatListingDatetimeDisplay"])(availableUntil)}`
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                    lineNumber: 115,
+                                                    lineNumber: 109,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                            lineNumber: 113,
+                                            lineNumber: 107,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                    lineNumber: 80,
+                                    lineNumber: 74,
                                     columnNumber: 15
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                lineNumber: 79,
+                                lineNumber: 73,
                                 columnNumber: 13
                             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
                                 children: [
@@ -4620,7 +4645,7 @@ function GiverAvailabilityScreen() {
                                                 children: "Available from"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                lineNumber: 124,
+                                                lineNumber: 118,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -4631,13 +4656,13 @@ function GiverAvailabilityScreen() {
                                                 onChange: (e)=>setAvailableFrom(e.target.value)
                                             }, void 0, false, {
                                                 fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                lineNumber: 125,
+                                                lineNumber: 119,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                        lineNumber: 123,
+                                        lineNumber: 117,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4648,7 +4673,7 @@ function GiverAvailabilityScreen() {
                                                 children: "Available until (optional)"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                lineNumber: 135,
+                                                lineNumber: 129,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -4659,21 +4684,21 @@ function GiverAvailabilityScreen() {
                                                 onChange: (e)=>setAvailableUntil(e.target.value)
                                             }, void 0, false, {
                                                 fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                lineNumber: 136,
+                                                lineNumber: 130,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                                 className: "text-xs text-muted-foreground",
-                                                children: availableUntil.trim() ? `Selected: ${formatLocalSummary(availableUntil)}` : "Leave empty if there’s no deadline"
+                                                children: availableUntil.trim() ? `Selected: ${(0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatListingDatetimeDisplay"])(availableUntil)}` : "Leave empty if there’s no deadline"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                lineNumber: 143,
+                                                lineNumber: 137,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                        lineNumber: 134,
+                                        lineNumber: 128,
                                         columnNumber: 15
                                     }, this)
                                 ]
@@ -4688,7 +4713,7 @@ function GiverAvailabilityScreen() {
                                             children: "Tips for availability"
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                            lineNumber: 154,
+                                            lineNumber: 148,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("ul", {
@@ -4698,44 +4723,44 @@ function GiverAvailabilityScreen() {
                                                     children: "• Be realistic about when you can meet"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                    lineNumber: 156,
+                                                    lineNumber: 150,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("li", {
                                                     children: "• Consider lunch breaks or after-work hours"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                    lineNumber: 157,
+                                                    lineNumber: 151,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("li", {
                                                     children: "• You can always update this later"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                                    lineNumber: 158,
+                                                    lineNumber: 152,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                            lineNumber: 155,
+                                            lineNumber: 149,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                    lineNumber: 153,
+                                    lineNumber: 147,
                                     columnNumber: 13
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                lineNumber: 152,
+                                lineNumber: 146,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                        lineNumber: 77,
+                        lineNumber: 71,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4751,30 +4776,30 @@ function GiverAvailabilityScreen() {
                                     className: "w-5 h-5 ml-2"
                                 }, void 0, false, {
                                     fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                                    lineNumber: 172,
+                                    lineNumber: 166,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                            lineNumber: 165,
+                            lineNumber: 159,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                        lineNumber: 164,
+                        lineNumber: 158,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/screens/giver-availability-screen.tsx",
-                lineNumber: 66,
+                lineNumber: 60,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/screens/giver-availability-screen.tsx",
-        lineNumber: 55,
+        lineNumber: 49,
         columnNumber: 5
     }, this);
 }
@@ -5111,9 +5136,11 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$re
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$send$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Send$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/send.js [app-client] (ecmascript) <export default as Send>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$triangle$2d$alert$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__AlertTriangle$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/triangle-alert.js [app-client] (ecmascript) <export default as AlertTriangle>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$flow$2d$progress$2d$tracker$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/flow-progress-tracker.tsx [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/utils.ts [app-client] (ecmascript)");
 ;
 var _s = __turbopack_context__.k.signature();
 "use client";
+;
 ;
 ;
 ;
@@ -5138,8 +5165,8 @@ function GiverPreviewScreen() {
                 "/placeholder.svg?height=400&width=400"
             ],
             location: newListing.location,
-            availableFrom: newListing.availableFrom,
-            availableUntil: newListing.availableUntil,
+            availableFrom: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["listingDatetimeForStorage"])(newListing.availableFrom),
+            availableUntil: newListing.availableUntil ? (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["listingDatetimeForStorage"])(newListing.availableUntil) : undefined,
             ownerId: user.id,
             ownerName: user.displayName,
             ownerDepartment: user.department,
@@ -5180,14 +5207,14 @@ function GiverPreviewScreen() {
                         className: "w-4 h-4 mr-2"
                     }, void 0, false, {
                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                        lineNumber: 71,
+                        lineNumber: 74,
                         columnNumber: 9
                     }, this),
                     "Back"
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                lineNumber: 65,
+                lineNumber: 68,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5202,7 +5229,7 @@ function GiverPreviewScreen() {
                                 className: "mb-4"
                             }, void 0, false, {
                                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                lineNumber: 77,
+                                lineNumber: 80,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
@@ -5210,7 +5237,7 @@ function GiverPreviewScreen() {
                                 children: "Preview your listing"
                             }, void 0, false, {
                                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                lineNumber: 78,
+                                lineNumber: 81,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -5218,13 +5245,13 @@ function GiverPreviewScreen() {
                                 children: "Here's how it will appear to other users"
                             }, void 0, false, {
                                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                lineNumber: 81,
+                                lineNumber: 84,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                        lineNumber: 76,
+                        lineNumber: 79,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
@@ -5243,7 +5270,7 @@ function GiverPreviewScreen() {
                                                     children: getCategoryEmoji(newListing.category ?? "other")
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                    lineNumber: 90,
+                                                    lineNumber: 93,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -5251,18 +5278,18 @@ function GiverPreviewScreen() {
                                                     children: "Image Preview"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                    lineNumber: 93,
+                                                    lineNumber: 96,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                            lineNumber: 89,
+                                            lineNumber: 92,
                                             columnNumber: 15
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                        lineNumber: 88,
+                                        lineNumber: 91,
                                         columnNumber: 13
                                     }, this),
                                     newListing.isUrgent && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$badge$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Badge"], {
@@ -5272,14 +5299,14 @@ function GiverPreviewScreen() {
                                                 className: "w-3 h-3 mr-1"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                lineNumber: 98,
+                                                lineNumber: 101,
                                                 columnNumber: 17
                                             }, this),
                                             "Urgent"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                        lineNumber: 97,
+                                        lineNumber: 100,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$badge$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Badge"], {
@@ -5288,13 +5315,13 @@ function GiverPreviewScreen() {
                                         children: newListing.category
                                     }, void 0, false, {
                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                        lineNumber: 102,
+                                        lineNumber: 105,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                lineNumber: 87,
+                                lineNumber: 90,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["CardContent"], {
@@ -5305,7 +5332,7 @@ function GiverPreviewScreen() {
                                         children: newListing.title
                                     }, void 0, false, {
                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                        lineNumber: 108,
+                                        lineNumber: 111,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -5313,7 +5340,7 @@ function GiverPreviewScreen() {
                                         children: newListing.description
                                     }, void 0, false, {
                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                        lineNumber: 111,
+                                        lineNumber: 114,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5329,7 +5356,7 @@ function GiverPreviewScreen() {
                                                         children: Math.max(1, Math.floor(newListing.quantity ?? 1))
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                        lineNumber: 118,
+                                                        lineNumber: 121,
                                                         columnNumber: 17
                                                     }, this),
                                                     " ",
@@ -5337,7 +5364,7 @@ function GiverPreviewScreen() {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                lineNumber: 116,
+                                                lineNumber: 119,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5347,20 +5374,20 @@ function GiverPreviewScreen() {
                                                         className: "w-4 h-4"
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                        lineNumber: 124,
+                                                        lineNumber: 127,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                         children: newListing.location
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                        lineNumber: 125,
+                                                        lineNumber: 128,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                lineNumber: 123,
+                                                lineNumber: 126,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5370,24 +5397,24 @@ function GiverPreviewScreen() {
                                                         className: "w-4 h-4"
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                        lineNumber: 128,
+                                                        lineNumber: 131,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                         children: [
                                                             "Available from ",
-                                                            newListing.availableFrom,
-                                                            newListing.availableUntil && ` until ${newListing.availableUntil}`
+                                                            (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatListingDatetimeDisplay"])(newListing.availableFrom),
+                                                            newListing.availableUntil && ` until ${(0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatListingDatetimeDisplay"])(newListing.availableUntil)}`
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                        lineNumber: 129,
+                                                        lineNumber: 132,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                lineNumber: 127,
+                                                lineNumber: 130,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5397,7 +5424,7 @@ function GiverPreviewScreen() {
                                                         className: "w-4 h-4"
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                        lineNumber: 135,
+                                                        lineNumber: 139,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -5407,31 +5434,31 @@ function GiverPreviewScreen() {
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                        lineNumber: 136,
+                                                        lineNumber: 140,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                lineNumber: 134,
+                                                lineNumber: 138,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                        lineNumber: 115,
+                                        lineNumber: 118,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                lineNumber: 107,
+                                lineNumber: 110,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                        lineNumber: 86,
+                        lineNumber: 89,
                         columnNumber: 9
                     }, this),
                     newListing.isUrgent && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
@@ -5445,7 +5472,7 @@ function GiverPreviewScreen() {
                                         className: "w-5 h-5 text-destructive shrink-0 mt-0.5"
                                     }, void 0, false, {
                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                        lineNumber: 148,
+                                        lineNumber: 152,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5455,7 +5482,7 @@ function GiverPreviewScreen() {
                                                 children: "Urgent Broadcast"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                lineNumber: 150,
+                                                lineNumber: 154,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -5463,29 +5490,29 @@ function GiverPreviewScreen() {
                                                 children: "This listing will be shown as a banner notification to all users currently in the app, and push notifications will be sent to those who have enabled them."
                                             }, void 0, false, {
                                                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                                lineNumber: 151,
+                                                lineNumber: 155,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                        lineNumber: 149,
+                                        lineNumber: 153,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                lineNumber: 147,
+                                lineNumber: 151,
                                 columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                            lineNumber: 146,
+                            lineNumber: 150,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                        lineNumber: 145,
+                        lineNumber: 149,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5500,14 +5527,14 @@ function GiverPreviewScreen() {
                                         className: "w-5 h-5 mr-2"
                                     }, void 0, false, {
                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                        lineNumber: 168,
+                                        lineNumber: 172,
                                         columnNumber: 13
                                     }, this),
                                     "Publish Listing"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                lineNumber: 163,
+                                lineNumber: 167,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -5519,32 +5546,32 @@ function GiverPreviewScreen() {
                                         className: "w-4 h-4 mr-2"
                                     }, void 0, false, {
                                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                        lineNumber: 176,
+                                        lineNumber: 180,
                                         columnNumber: 13
                                     }, this),
                                     "Edit Details"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                                lineNumber: 171,
+                                lineNumber: 175,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                        lineNumber: 162,
+                        lineNumber: 166,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/screens/giver-preview-screen.tsx",
-                lineNumber: 75,
+                lineNumber: 78,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/screens/giver-preview-screen.tsx",
-        lineNumber: 64,
+        lineNumber: 67,
         columnNumber: 5
     }, this);
 }
@@ -6670,6 +6697,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/ui/card.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$badge$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/ui/badge.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/ui/dialog.tsx [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$alert$2d$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/ui/alert-dialog.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/ui/input.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$textarea$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/ui/textarea.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$label$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/ui/label.tsx [app-client] (ecmascript)");
@@ -6686,9 +6714,11 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$re
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$rotate$2d$ccw$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__RotateCcw$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/rotate-ccw.js [app-client] (ecmascript) <export default as RotateCcw>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$message$2d$circle$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__MessageCircle$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/message-circle.js [app-client] (ecmascript) <export default as MessageCircle>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$users$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Users$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/users.js [app-client] (ecmascript) <export default as Users>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$trash$2d$2$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Trash2$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/trash-2.js [app-client] (ecmascript) <export default as Trash2>");
 ;
 var _s = __turbopack_context__.k.signature();
 "use client";
+;
 ;
 ;
 ;
@@ -6712,7 +6742,7 @@ const categoryLabels = {
 };
 function MyListingsScreen() {
     _s();
-    const { setScreen, listings, chopes, sessionUserId, updateListing, archiveListing, reviveListing } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAppStore"])();
+    const { setScreen, listings, chopes, sessionUserId, updateListing, archiveListing, deleteListing, reviveListing } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAppStore"])();
     const myListings = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
         "MyListingsScreen.useMemo[myListings]": ()=>listings.filter({
                 "MyListingsScreen.useMemo[myListings]": (l)=>l.ownerId === sessionUserId
@@ -6736,6 +6766,7 @@ function MyListingsScreen() {
     const [reviveOpen, setReviveOpen] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [reviveListingId, setReviveListingId] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     const [reviveQuantity, setReviveQuantity] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("1");
+    const [listingToDelete, setListingToDelete] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     const openEdit = (listing)=>{
         const used = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getSlotsUsed"])(listing.id, chopes);
         if (used > 0) return;
@@ -6764,8 +6795,8 @@ function MyListingsScreen() {
             title: t,
             description: d,
             location: loc,
-            availableFrom: availableFrom.trim(),
-            availableUntil: until || undefined,
+            availableFrom: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["listingDatetimeForStorage"])(availableFrom.trim()),
+            availableUntil: until ? (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["listingDatetimeForStorage"])(until) : undefined,
             category,
             isUrgent
         });
@@ -6785,6 +6816,12 @@ function MyListingsScreen() {
         setReviveOpen(false);
         setReviveListingId(null);
     };
+    const confirmDeleteListing = ()=>{
+        if (!listingToDelete) return;
+        deleteListing(listingToDelete.id);
+        if (editingId === listingToDelete.id) closeEdit();
+        setListingToDelete(null);
+    };
     const getStatusBadge = (status)=>{
         switch(status){
             case "available":
@@ -6795,14 +6832,14 @@ function MyListingsScreen() {
                             className: "w-3 h-3 mr-1"
                         }, void 0, false, {
                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                            lineNumber: 157,
+                            lineNumber: 178,
                             columnNumber: 13
                         }, this),
                         "Available"
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                    lineNumber: 156,
+                    lineNumber: 177,
                     columnNumber: 11
                 }, this);
             case "reserved":
@@ -6813,14 +6850,14 @@ function MyListingsScreen() {
                             className: "w-3 h-3 mr-1"
                         }, void 0, false, {
                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                            lineNumber: 164,
+                            lineNumber: 185,
                             columnNumber: 13
                         }, this),
                         "Reserved"
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                    lineNumber: 163,
+                    lineNumber: 184,
                     columnNumber: 11
                 }, this);
             case "claimed":
@@ -6831,14 +6868,14 @@ function MyListingsScreen() {
                             className: "w-3 h-3 mr-1"
                         }, void 0, false, {
                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                            lineNumber: 171,
+                            lineNumber: 192,
                             columnNumber: 13
                         }, this),
                         "Claimed"
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                    lineNumber: 170,
+                    lineNumber: 191,
                     columnNumber: 11
                 }, this);
             default:
@@ -6874,14 +6911,14 @@ function MyListingsScreen() {
                         className: "w-4 h-4 mr-2"
                     }, void 0, false, {
                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                        lineNumber: 211,
+                        lineNumber: 232,
                         columnNumber: 9
                     }, this),
                     "Back"
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                lineNumber: 205,
+                lineNumber: 226,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -6895,7 +6932,7 @@ function MyListingsScreen() {
                                 children: "My listings"
                             }, void 0, false, {
                                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                lineNumber: 217,
+                                lineNumber: 238,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -6906,20 +6943,20 @@ function MyListingsScreen() {
                                         className: "w-4 h-4 mr-1"
                                     }, void 0, false, {
                                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                        lineNumber: 219,
+                                        lineNumber: 240,
                                         columnNumber: 13
                                     }, this),
                                     "New"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                lineNumber: 218,
+                                lineNumber: 239,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                        lineNumber: 216,
+                        lineNumber: 237,
                         columnNumber: 9
                     }, this),
                     sessionUser && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -6932,7 +6969,7 @@ function MyListingsScreen() {
                                 children: sessionUser.email
                             }, void 0, false, {
                                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                lineNumber: 226,
+                                lineNumber: 247,
                                 columnNumber: 13
                             }, this),
                             " ",
@@ -6942,13 +6979,13 @@ function MyListingsScreen() {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                        lineNumber: 224,
+                        lineNumber: 245,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                lineNumber: 215,
+                lineNumber: 236,
                 columnNumber: 7
             }, this),
             myListings.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
@@ -6962,12 +6999,12 @@ function MyListingsScreen() {
                                 className: "w-8 h-8 text-muted-foreground"
                             }, void 0, false, {
                                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                lineNumber: 238,
+                                lineNumber: 259,
                                 columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                            lineNumber: 237,
+                            lineNumber: 258,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
@@ -6975,7 +7012,7 @@ function MyListingsScreen() {
                             children: "No listings yet"
                         }, void 0, false, {
                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                            lineNumber: 240,
+                            lineNumber: 261,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -6983,7 +7020,7 @@ function MyListingsScreen() {
                             children: "Start sharing items with your colleagues"
                         }, void 0, false, {
                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                            lineNumber: 241,
+                            lineNumber: 262,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -6993,25 +7030,25 @@ function MyListingsScreen() {
                                     className: "w-4 h-4 mr-2"
                                 }, void 0, false, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 245,
+                                    lineNumber: 266,
                                     columnNumber: 15
                                 }, this),
                                 "Create listing"
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                            lineNumber: 244,
+                            lineNumber: 265,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                    lineNumber: 236,
+                    lineNumber: 257,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                lineNumber: 235,
+                lineNumber: 256,
                 columnNumber: 9
             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
                 children: [
@@ -7027,7 +7064,7 @@ function MyListingsScreen() {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                lineNumber: 253,
+                                lineNumber: 274,
                                 columnNumber: 13
                             }, this),
                             activeListings.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -7035,7 +7072,7 @@ function MyListingsScreen() {
                                 children: "No active listings. Revive one from Archive below if needed."
                             }, void 0, false, {
                                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                lineNumber: 257,
+                                lineNumber: 278,
                                 columnNumber: 15
                             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 className: "space-y-3",
@@ -7057,7 +7094,7 @@ function MyListingsScreen() {
                                                             children: getCategoryEmoji(listing.category)
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                            lineNumber: 272,
+                                                            lineNumber: 293,
                                                             columnNumber: 27
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7071,14 +7108,14 @@ function MyListingsScreen() {
                                                                             children: listing.title
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                            lineNumber: 277,
+                                                                            lineNumber: 298,
                                                                             columnNumber: 31
                                                                         }, this),
                                                                         getStatusBadge(listing.status)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                    lineNumber: 276,
+                                                                    lineNumber: 297,
                                                                     columnNumber: 29
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -7088,7 +7125,7 @@ function MyListingsScreen() {
                                                                             className: "w-3 h-3 shrink-0"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                            lineNumber: 283,
+                                                                            lineNumber: 304,
                                                                             columnNumber: 31
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -7096,13 +7133,13 @@ function MyListingsScreen() {
                                                                             children: listing.location
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                            lineNumber: 284,
+                                                                            lineNumber: 305,
                                                                             columnNumber: 31
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                    lineNumber: 282,
+                                                                    lineNumber: 303,
                                                                     columnNumber: 29
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -7113,7 +7150,7 @@ function MyListingsScreen() {
                                                                             children: used
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                            lineNumber: 287,
+                                                                            lineNumber: 308,
                                                                             columnNumber: 31
                                                                         }, this),
                                                                         " /",
@@ -7133,7 +7170,7 @@ function MyListingsScreen() {
                                                                                     ]
                                                                                 }, void 0, true, {
                                                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                                    lineNumber: 293,
+                                                                                    lineNumber: 314,
                                                                                     columnNumber: 35
                                                                                 }, this)
                                                                             ]
@@ -7141,19 +7178,19 @@ function MyListingsScreen() {
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                    lineNumber: 286,
+                                                                    lineNumber: 307,
                                                                     columnNumber: 29
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                            lineNumber: 275,
+                                                            lineNumber: 296,
                                                             columnNumber: 27
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 271,
+                                                    lineNumber: 292,
                                                     columnNumber: 25
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("details", {
@@ -7166,7 +7203,7 @@ function MyListingsScreen() {
                                                                     className: "w-4 h-4 shrink-0"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                    lineNumber: 304,
+                                                                    lineNumber: 325,
                                                                     columnNumber: 29
                                                                 }, this),
                                                                 "People who choped (",
@@ -7175,7 +7212,7 @@ function MyListingsScreen() {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                            lineNumber: 303,
+                                                            lineNumber: 324,
                                                             columnNumber: 27
                                                         }, this),
                                                         interests.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -7183,7 +7220,7 @@ function MyListingsScreen() {
                                                             children: "No chopes yet."
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                            lineNumber: 308,
+                                                            lineNumber: 329,
                                                             columnNumber: 29
                                                         }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("ul", {
                                                             className: "mt-2 space-y-2 pl-1",
@@ -7203,13 +7240,13 @@ function MyListingsScreen() {
                                                                                     ]
                                                                                 }, void 0, true, {
                                                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                                    lineNumber: 320,
+                                                                                    lineNumber: 341,
                                                                                     columnNumber: 37
                                                                                 }, this)
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                            lineNumber: 318,
+                                                                            lineNumber: 339,
                                                                             columnNumber: 35
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -7217,7 +7254,7 @@ function MyListingsScreen() {
                                                                             children: new Date(c.createdAt).toLocaleString()
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                            lineNumber: 325,
+                                                                            lineNumber: 346,
                                                                             columnNumber: 35
                                                                         }, this),
                                                                         c.message && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -7227,37 +7264,37 @@ function MyListingsScreen() {
                                                                                     className: "w-3.5 h-3.5 shrink-0 mt-0.5"
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                                    lineNumber: 330,
+                                                                                    lineNumber: 351,
                                                                                     columnNumber: 39
                                                                                 }, this),
                                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                                     children: c.message
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                                    lineNumber: 331,
+                                                                                    lineNumber: 352,
                                                                                     columnNumber: 39
                                                                                 }, this)
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                            lineNumber: 329,
+                                                                            lineNumber: 350,
                                                                             columnNumber: 37
                                                                         }, this)
                                                                     ]
                                                                 }, c.id, true, {
                                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                    lineNumber: 314,
+                                                                    lineNumber: 335,
                                                                     columnNumber: 33
                                                                 }, this))
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                            lineNumber: 312,
+                                                            lineNumber: 333,
                                                             columnNumber: 29
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 302,
+                                                    lineNumber: 323,
                                                     columnNumber: 25
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7276,14 +7313,14 @@ function MyListingsScreen() {
                                                                     className: "w-4 h-4 mr-1"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                    lineNumber: 354,
+                                                                    lineNumber: 375,
                                                                     columnNumber: 29
                                                                 }, this),
                                                                 "Edit"
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                            lineNumber: 341,
+                                                            lineNumber: 362,
                                                             columnNumber: 27
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -7297,20 +7334,41 @@ function MyListingsScreen() {
                                                                     className: "w-4 h-4 mr-1"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                                    lineNumber: 364,
+                                                                    lineNumber: 385,
                                                                     columnNumber: 29
                                                                 }, this),
                                                                 "Archive"
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                            lineNumber: 357,
+                                                            lineNumber: 378,
                                                             columnNumber: 27
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 340,
+                                                    lineNumber: 361,
+                                                    columnNumber: 25
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
+                                                    type: "button",
+                                                    variant: "outline",
+                                                    size: "sm",
+                                                    className: "w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive",
+                                                    onClick: ()=>setListingToDelete(listing),
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$trash$2d$2$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Trash2$3e$__["Trash2"], {
+                                                            className: "w-4 h-4 mr-1"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/components/screens/my-listings-screen.tsx",
+                                                            lineNumber: 396,
+                                                            columnNumber: 27
+                                                        }, this),
+                                                        "Delete listing"
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/components/screens/my-listings-screen.tsx",
+                                                    lineNumber: 389,
                                                     columnNumber: 25
                                                 }, this),
                                                 editLocked && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -7318,30 +7376,30 @@ function MyListingsScreen() {
                                                     children: "Editing is disabled while someone has choped. Archive when you're done offline; use Revive to list again with a new quantity (clears in-app chopes)."
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 369,
+                                                    lineNumber: 400,
                                                     columnNumber: 27
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                            lineNumber: 270,
+                                            lineNumber: 291,
                                             columnNumber: 23
                                         }, this)
                                     }, listing.id, false, {
                                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                        lineNumber: 269,
+                                        lineNumber: 290,
                                         columnNumber: 21
                                     }, this);
                                 })
                             }, void 0, false, {
                                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                lineNumber: 261,
+                                lineNumber: 282,
                                 columnNumber: 15
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                        lineNumber: 252,
+                        lineNumber: 273,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("details", {
@@ -7356,7 +7414,7 @@ function MyListingsScreen() {
                                             className: "w-4 h-4"
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                            lineNumber: 386,
+                                            lineNumber: 417,
                                             columnNumber: 17
                                         }, this),
                                         "Archived (",
@@ -7365,12 +7423,12 @@ function MyListingsScreen() {
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 385,
+                                    lineNumber: 416,
                                     columnNumber: 15
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                lineNumber: 384,
+                                lineNumber: 415,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7380,7 +7438,7 @@ function MyListingsScreen() {
                                     children: "No archived listings."
                                 }, void 0, false, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 392,
+                                    lineNumber: 423,
                                     columnNumber: 17
                                 }, this) : archivedListings.map((listing)=>{
                                     const used = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getSlotsUsed"])(listing.id, chopes);
@@ -7395,7 +7453,7 @@ function MyListingsScreen() {
                                                     children: listing.title
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 400,
+                                                    lineNumber: 431,
                                                     columnNumber: 25
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -7408,7 +7466,7 @@ function MyListingsScreen() {
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 401,
+                                                    lineNumber: 432,
                                                     columnNumber: 25
                                                 }, this),
                                                 interests.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("ul", {
@@ -7420,56 +7478,86 @@ function MyListingsScreen() {
                                                             ]
                                                         }, c.id, true, {
                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                            lineNumber: 407,
+                                                            lineNumber: 438,
                                                             columnNumber: 31
                                                         }, this))
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 405,
+                                                    lineNumber: 436,
                                                     columnNumber: 27
                                                 }, this),
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
-                                                    type: "button",
-                                                    size: "sm",
-                                                    variant: "outline",
-                                                    className: "w-full",
-                                                    onClick: ()=>openRevive(listing),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "flex flex-col gap-2 sm:flex-row",
                                                     children: [
-                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$rotate$2d$ccw$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__RotateCcw$3e$__["RotateCcw"], {
-                                                            className: "w-4 h-4 mr-1"
-                                                        }, void 0, false, {
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
+                                                            type: "button",
+                                                            size: "sm",
+                                                            variant: "outline",
+                                                            className: "flex-1",
+                                                            onClick: ()=>openRevive(listing),
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$rotate$2d$ccw$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__RotateCcw$3e$__["RotateCcw"], {
+                                                                    className: "w-4 h-4 mr-1"
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/components/screens/my-listings-screen.tsx",
+                                                                    lineNumber: 453,
+                                                                    columnNumber: 29
+                                                                }, this),
+                                                                "Revive listing"
+                                                            ]
+                                                        }, void 0, true, {
                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                            lineNumber: 421,
+                                                            lineNumber: 446,
                                                             columnNumber: 27
                                                         }, this),
-                                                        "Revive listing"
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
+                                                            type: "button",
+                                                            size: "sm",
+                                                            variant: "outline",
+                                                            className: "flex-1 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive",
+                                                            onClick: ()=>setListingToDelete(listing),
+                                                            children: [
+                                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$trash$2d$2$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Trash2$3e$__["Trash2"], {
+                                                                    className: "w-4 h-4 mr-1"
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/components/screens/my-listings-screen.tsx",
+                                                                    lineNumber: 463,
+                                                                    columnNumber: 29
+                                                                }, this),
+                                                                "Delete"
+                                                            ]
+                                                        }, void 0, true, {
+                                                            fileName: "[project]/components/screens/my-listings-screen.tsx",
+                                                            lineNumber: 456,
+                                                            columnNumber: 27
+                                                        }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 414,
+                                                    lineNumber: 445,
                                                     columnNumber: 25
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                            lineNumber: 399,
+                                            lineNumber: 430,
                                             columnNumber: 23
                                         }, this)
                                     }, listing.id, false, {
                                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                        lineNumber: 398,
+                                        lineNumber: 429,
                                         columnNumber: 21
                                     }, this);
                                 })
                             }, void 0, false, {
                                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                lineNumber: 390,
+                                lineNumber: 421,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                        lineNumber: 383,
+                        lineNumber: 414,
                         columnNumber: 11
                     }, this)
                 ]
@@ -7482,7 +7570,7 @@ function MyListingsScreen() {
                         children: "Your impact"
                     }, void 0, false, {
                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                        lineNumber: 435,
+                        lineNumber: 478,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7495,7 +7583,7 @@ function MyListingsScreen() {
                                         children: activeListings.length
                                     }, void 0, false, {
                                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                        lineNumber: 438,
+                                        lineNumber: 481,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -7503,13 +7591,13 @@ function MyListingsScreen() {
                                         children: "Active"
                                     }, void 0, false, {
                                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                        lineNumber: 439,
+                                        lineNumber: 482,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                lineNumber: 437,
+                                lineNumber: 480,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7519,7 +7607,7 @@ function MyListingsScreen() {
                                         children: totalChopesOnActive
                                     }, void 0, false, {
                                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                        lineNumber: 442,
+                                        lineNumber: 485,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -7527,13 +7615,13 @@ function MyListingsScreen() {
                                         children: "Chope"
                                     }, void 0, false, {
                                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                        lineNumber: 443,
+                                        lineNumber: 486,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                lineNumber: 441,
+                                lineNumber: 484,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7543,7 +7631,7 @@ function MyListingsScreen() {
                                         children: archivedListings.length
                                     }, void 0, false, {
                                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                        lineNumber: 446,
+                                        lineNumber: 489,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -7551,25 +7639,25 @@ function MyListingsScreen() {
                                         children: "Archived"
                                     }, void 0, false, {
                                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                        lineNumber: 447,
+                                        lineNumber: 490,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                lineNumber: 445,
+                                lineNumber: 488,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                        lineNumber: 436,
+                        lineNumber: 479,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                lineNumber: 434,
+                lineNumber: 477,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Dialog"], {
@@ -7584,20 +7672,20 @@ function MyListingsScreen() {
                                     children: "Edit listing"
                                 }, void 0, false, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 455,
+                                    lineNumber: 498,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogDescription"], {
                                     children: "Update how this listing appears to finders. Photos are unchanged for now."
                                 }, void 0, false, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 456,
+                                    lineNumber: 499,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                            lineNumber: 454,
+                            lineNumber: 497,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7611,7 +7699,7 @@ function MyListingsScreen() {
                                             children: "Title"
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                            lineNumber: 464,
+                                            lineNumber: 507,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -7621,13 +7709,13 @@ function MyListingsScreen() {
                                             placeholder: "Short title"
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                            lineNumber: 465,
+                                            lineNumber: 508,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 463,
+                                    lineNumber: 506,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7638,7 +7726,7 @@ function MyListingsScreen() {
                                             children: "Description"
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                            lineNumber: 473,
+                                            lineNumber: 516,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$textarea$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Textarea"], {
@@ -7649,13 +7737,13 @@ function MyListingsScreen() {
                                             className: "min-h-[100px] resize-y"
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                            lineNumber: 474,
+                                            lineNumber: 517,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 472,
+                                    lineNumber: 515,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7666,7 +7754,7 @@ function MyListingsScreen() {
                                             children: "Pickup location"
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                            lineNumber: 483,
+                                            lineNumber: 526,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -7676,13 +7764,13 @@ function MyListingsScreen() {
                                             placeholder: "e.g. Level 5, Pantry"
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                            lineNumber: 484,
+                                            lineNumber: 527,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 482,
+                                    lineNumber: 525,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7696,7 +7784,7 @@ function MyListingsScreen() {
                                                     children: "Available from"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 493,
+                                                    lineNumber: 536,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -7706,13 +7794,13 @@ function MyListingsScreen() {
                                                     onChange: (e)=>setAvailableFrom(e.target.value)
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 494,
+                                                    lineNumber: 537,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                            lineNumber: 492,
+                                            lineNumber: 535,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7723,7 +7811,7 @@ function MyListingsScreen() {
                                                     children: "Available until (optional)"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 502,
+                                                    lineNumber: 545,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -7733,19 +7821,19 @@ function MyListingsScreen() {
                                                     onChange: (e)=>setAvailableUntil(e.target.value)
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 503,
+                                                    lineNumber: 546,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                            lineNumber: 501,
+                                            lineNumber: 544,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 491,
+                                    lineNumber: 534,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7755,7 +7843,7 @@ function MyListingsScreen() {
                                             children: "Category"
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                            lineNumber: 512,
+                                            lineNumber: 555,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Select"], {
@@ -7766,12 +7854,12 @@ function MyListingsScreen() {
                                                     className: "w-full",
                                                     children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectValue"], {}, void 0, false, {
                                                         fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                        lineNumber: 518,
+                                                        lineNumber: 561,
                                                         columnNumber: 19
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 517,
+                                                    lineNumber: 560,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectContent"], {
@@ -7780,24 +7868,24 @@ function MyListingsScreen() {
                                                             children: categoryLabels[c]
                                                         }, c, false, {
                                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                            lineNumber: 522,
+                                                            lineNumber: 565,
                                                             columnNumber: 21
                                                         }, this))
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 520,
+                                                    lineNumber: 563,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                            lineNumber: 513,
+                                            lineNumber: 556,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 511,
+                                    lineNumber: 554,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7810,7 +7898,7 @@ function MyListingsScreen() {
                                                     children: "Urgent"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 531,
+                                                    lineNumber: 574,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -7818,13 +7906,13 @@ function MyListingsScreen() {
                                                     children: "Show urgent styling and banner when on"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                                    lineNumber: 532,
+                                                    lineNumber: 575,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                            lineNumber: 530,
+                                            lineNumber: 573,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$switch$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Switch"], {
@@ -7832,19 +7920,19 @@ function MyListingsScreen() {
                                             onCheckedChange: setIsUrgent
                                         }, void 0, false, {
                                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                            lineNumber: 536,
+                                            lineNumber: 579,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 529,
+                                    lineNumber: 572,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                            lineNumber: 462,
+                            lineNumber: 505,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogFooter"], {
@@ -7856,7 +7944,7 @@ function MyListingsScreen() {
                                     children: "Cancel"
                                 }, void 0, false, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 541,
+                                    lineNumber: 584,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -7866,24 +7954,24 @@ function MyListingsScreen() {
                                     children: "Save changes"
                                 }, void 0, false, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 544,
+                                    lineNumber: 587,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                            lineNumber: 540,
+                            lineNumber: 583,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                    lineNumber: 453,
+                    lineNumber: 496,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                lineNumber: 452,
+                lineNumber: 495,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Dialog"], {
@@ -7901,20 +7989,20 @@ function MyListingsScreen() {
                                     children: "Revive listing"
                                 }, void 0, false, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 564,
+                                    lineNumber: 607,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogDescription"], {
                                     children: "Set how many quantity are available now. This clears in-app chopes for this listing so finders can chope again up to that number."
                                 }, void 0, false, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 565,
+                                    lineNumber: 608,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                            lineNumber: 563,
+                            lineNumber: 606,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7925,7 +8013,7 @@ function MyListingsScreen() {
                                     children: "Available quantity"
                                 }, void 0, false, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 571,
+                                    lineNumber: 614,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -7937,13 +8025,13 @@ function MyListingsScreen() {
                                     onChange: (e)=>setReviveQuantity(e.target.value)
                                 }, void 0, false, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 572,
+                                    lineNumber: 615,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                            lineNumber: 570,
+                            lineNumber: 613,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogFooter"], {
@@ -7955,7 +8043,7 @@ function MyListingsScreen() {
                                     children: "Cancel"
                                 }, void 0, false, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 582,
+                                    lineNumber: 625,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -7965,34 +8053,133 @@ function MyListingsScreen() {
                                     children: "Revive"
                                 }, void 0, false, {
                                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                                    lineNumber: 585,
+                                    lineNumber: 628,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/screens/my-listings-screen.tsx",
-                            lineNumber: 581,
+                            lineNumber: 624,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/screens/my-listings-screen.tsx",
-                    lineNumber: 562,
+                    lineNumber: 605,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/components/screens/my-listings-screen.tsx",
-                lineNumber: 555,
+                lineNumber: 598,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$alert$2d$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AlertDialog"], {
+                open: listingToDelete !== null,
+                onOpenChange: (open)=>{
+                    if (!open) setListingToDelete(null);
+                },
+                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$alert$2d$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AlertDialogContent"], {
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$alert$2d$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AlertDialogHeader"], {
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$alert$2d$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AlertDialogTitle"], {
+                                    children: "Delete this listing?"
+                                }, void 0, false, {
+                                    fileName: "[project]/components/screens/my-listings-screen.tsx",
+                                    lineNumber: 651,
+                                    columnNumber: 13
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$alert$2d$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AlertDialogDescription"], {
+                                    asChild: true,
+                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "text-sm text-muted-foreground",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                        className: "font-medium text-foreground",
+                                                        children: listingToDelete?.title
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/components/screens/my-listings-screen.tsx",
+                                                        lineNumber: 655,
+                                                        columnNumber: 19
+                                                    }, this),
+                                                    " ",
+                                                    "will be removed permanently and will no longer appear in browse."
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/components/screens/my-listings-screen.tsx",
+                                                lineNumber: 654,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                className: "mt-2",
+                                                children: "All in-app chopes on this listing will be removed—finders will no longer see this reservation under My chopes."
+                                            }, void 0, false, {
+                                                fileName: "[project]/components/screens/my-listings-screen.tsx",
+                                                lineNumber: 660,
+                                                columnNumber: 17
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/components/screens/my-listings-screen.tsx",
+                                        lineNumber: 653,
+                                        columnNumber: 15
+                                    }, this)
+                                }, void 0, false, {
+                                    fileName: "[project]/components/screens/my-listings-screen.tsx",
+                                    lineNumber: 652,
+                                    columnNumber: 13
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/components/screens/my-listings-screen.tsx",
+                            lineNumber: 650,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$alert$2d$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AlertDialogFooter"], {
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$alert$2d$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AlertDialogCancel"], {
+                                    children: "Cancel"
+                                }, void 0, false, {
+                                    fileName: "[project]/components/screens/my-listings-screen.tsx",
+                                    lineNumber: 668,
+                                    columnNumber: 13
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$experimental$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$alert$2d$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AlertDialogAction"], {
+                                    className: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                                    onClick: confirmDeleteListing,
+                                    children: "Delete listing"
+                                }, void 0, false, {
+                                    fileName: "[project]/components/screens/my-listings-screen.tsx",
+                                    lineNumber: 669,
+                                    columnNumber: 13
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/components/screens/my-listings-screen.tsx",
+                            lineNumber: 667,
+                            columnNumber: 11
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/components/screens/my-listings-screen.tsx",
+                    lineNumber: 649,
+                    columnNumber: 9
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/components/screens/my-listings-screen.tsx",
+                lineNumber: 643,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/screens/my-listings-screen.tsx",
-        lineNumber: 204,
+        lineNumber: 225,
         columnNumber: 5
     }, this);
 }
-_s(MyListingsScreen, "M1IpfwYVGT1BiCi5VD+WidDOxrQ=", false, function() {
+_s(MyListingsScreen, "4UB/ZcxYiN5dl1rvtoH2Aw8ucT8=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAppStore"]
     ];

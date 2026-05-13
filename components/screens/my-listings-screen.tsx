@@ -9,7 +9,7 @@ import {
   getRemaining,
 } from "@/lib/store"
 import { getPocUser } from "@/lib/poc-users"
-import { datetimeLocalFromStored } from "@/lib/utils"
+import { datetimeLocalFromStored, listingDatetimeForStorage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -21,6 +21,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -44,6 +54,7 @@ import {
   RotateCcw,
   MessageCircle,
   Users,
+  Trash2,
 } from "lucide-react"
 
 const categoryLabels: Record<Category, string> = {
@@ -62,6 +73,7 @@ export function MyListingsScreen() {
     sessionUserId,
     updateListing,
     archiveListing,
+    deleteListing,
     reviveListing,
   } = useAppStore()
 
@@ -87,6 +99,8 @@ export function MyListingsScreen() {
   const [reviveOpen, setReviveOpen] = useState(false)
   const [reviveListingId, setReviveListingId] = useState<string | null>(null)
   const [reviveQuantity, setReviveQuantity] = useState("1")
+
+  const [listingToDelete, setListingToDelete] = useState<Listing | null>(null)
 
   const openEdit = (listing: Listing) => {
     const used = getSlotsUsed(listing.id, chopes)
@@ -119,8 +133,8 @@ export function MyListingsScreen() {
       title: t,
       description: d,
       location: loc,
-      availableFrom: availableFrom.trim(),
-      availableUntil: until || undefined,
+      availableFrom: listingDatetimeForStorage(availableFrom.trim()),
+      availableUntil: until ? listingDatetimeForStorage(until) : undefined,
       category,
       isUrgent,
     })
@@ -147,6 +161,13 @@ export function MyListingsScreen() {
     reviveListing(reviveListingId, n)
     setReviveOpen(false)
     setReviveListingId(null)
+  }
+
+  const confirmDeleteListing = () => {
+    if (!listingToDelete) return
+    deleteListing(listingToDelete.id)
+    if (editingId === listingToDelete.id) closeEdit()
+    setListingToDelete(null)
   }
 
   const getStatusBadge = (status: string) => {
@@ -365,6 +386,16 @@ export function MyListingsScreen() {
                             Archive
                           </Button>
                         </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => setListingToDelete(listing)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Delete listing
+                        </Button>
                         {editLocked && (
                           <p className="text-xs text-muted-foreground">
                             Editing is disabled while someone has choped. Archive
@@ -411,16 +442,28 @@ export function MyListingsScreen() {
                             ))}
                           </ul>
                         )}
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="w-full"
-                          onClick={() => openRevive(listing)}
-                        >
-                          <RotateCcw className="w-4 h-4 mr-1" />
-                          Revive listing
-                        </Button>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => openRevive(listing)}
+                          >
+                            <RotateCcw className="w-4 h-4 mr-1" />
+                            Revive listing
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => setListingToDelete(listing)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   )
@@ -596,6 +639,42 @@ export function MyListingsScreen() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={listingToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setListingToDelete(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this listing?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="text-sm text-muted-foreground">
+                <p>
+                  <span className="font-medium text-foreground">
+                    {listingToDelete?.title}
+                  </span>{" "}
+                  will be removed permanently and will no longer appear in browse.
+                </p>
+                <p className="mt-2">
+                  All in-app chopes on this listing will be removed—finders will no
+                  longer see this reservation under My chopes.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={confirmDeleteListing}
+            >
+              Delete listing
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

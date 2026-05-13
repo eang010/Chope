@@ -18,7 +18,7 @@ import {
   Hand,
   ListFilter,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatListingDatetimeDisplay } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -514,9 +514,12 @@ export function FinderBrowseScreen() {
                             <div className="flex items-center gap-3">
                               <Clock className="w-5 h-5 text-muted-foreground shrink-0" />
                               <span className="text-sm text-foreground">
-                                Available from {listing.availableFrom}
+                                Available from {formatListingDatetimeDisplay(listing.availableFrom)}
+                                {listing.availableUntil &&
+                                  ` until ${formatListingDatetimeDisplay(listing.availableUntil)}`}
                               </span>
                             </div>
+                            
                             
                             {/* Owner Row */}
                             <div className="flex items-center gap-3">
