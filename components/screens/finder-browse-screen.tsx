@@ -400,7 +400,7 @@ export function FinderBrowseScreen() {
       <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
         {browseHeader({ showCounter: true })}
 
-        <div className="mx-auto flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden px-0 pb-0 sm:px-4 sm:pb-2">
+        <div className="mx-auto flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden px-0 pb-[calc(env(safe-area-inset-bottom,0px)+7.25rem)] pt-0 sm:px-4 sm:pb-[calc(env(safe-area-inset-bottom,0px)+7rem)] sm:pt-0">
           <p className="sr-only">
             Listing carousel. Scroll left and right, or use the left and right
             arrow keys to move between listings.
@@ -446,22 +446,22 @@ export function FinderBrowseScreen() {
                 {/* Google Maps Style Card */}
                 <Card
                   className={cn(
-                    "flex max-h-full w-full flex-col overflow-hidden border-0 bg-card p-0 py-0 gap-0 rounded-xl cursor-pointer transition-shadow",
+                    "flex max-h-full min-h-0 w-full flex-col overflow-hidden border-0 bg-card p-0 py-0 gap-0 rounded-xl cursor-pointer transition-shadow",
                     // Tight shadow (negative spread) so it doesn’t read as a tall gap above Skip / Chope
                     "shadow-[0_1px_0_rgba(0,0,0,0.04),0_6px_18px_-10px_rgba(0,0,0,0.12)]",
                     "sm:max-w-md",
                     isActive
-                      ? "h-full shadow-[0_1px_0_rgba(0,0,0,0.05),0_8px_22px_-10px_rgba(0,0,0,0.16)]"
+                      ? "h-full min-h-0 shadow-[0_1px_0_rgba(0,0,0,0.05),0_8px_22px_-10px_rgba(0,0,0,0.16)]"
                       : "h-auto sm:self-auto"
                   )}
                 >
-                  {/* Hero — large aspect crop when active (matches earlier “photo-forward” sizing) */}
+                  {/* Hero: flexes to eat leftover card height so layout matches across tall / short phones */}
                   <div
                     className={cn(
-                      "relative w-full min-w-0 shrink-0 overflow-hidden bg-muted",
+                      "relative w-full min-w-0 overflow-hidden bg-muted",
                       isActive
-                        ? "aspect-[4/3] min-h-[13rem] max-h-[min(58vh,23rem)] sm:aspect-[16/10] sm:min-h-[14rem] sm:max-h-[min(52vh,24rem)]"
-                        : "h-40 sm:h-44"
+                        ? "min-h-[12.5rem] flex-[1.25] basis-0 max-h-[min(72vh,28rem)] sm:min-h-[13rem] sm:flex-[1.2] sm:max-h-[min(68vh,30rem)]"
+                        : "h-40 shrink-0 sm:h-44"
                     )}
                   >
                     <img
@@ -645,7 +645,7 @@ export function FinderBrowseScreen() {
       <div
         role="toolbar"
         aria-label="Listing actions"
-        className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] left-0 right-0 z-30 border-t border-border/10 bg-background/70 py-1.5 backdrop-blur-md supports-[backdrop-filter]:bg-background/55 dark:border-border/15 dark:bg-background/50 sm:bottom-[calc(env(safe-area-inset-bottom,0px)+4.75rem)]"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+4.375rem)] left-0 right-0 z-30 border-t border-border/10 bg-background/70 py-1 backdrop-blur-md supports-[backdrop-filter]:bg-background/55 dark:border-border/15 dark:bg-background/50 sm:bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)]"
       >
         <div className="mx-auto flex max-w-md items-stretch gap-2 px-3 sm:max-w-sm sm:gap-3 sm:px-4">
           <Button

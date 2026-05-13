@@ -63,7 +63,9 @@ export function ShareSpaceApp() {
             ? "overflow-y-hidden"
             : "overflow-y-auto",
           showBottomNav &&
-            "pb-[calc(env(safe-area-inset-bottom,0px)+5.75rem)]"
+            (screen === "finder-browse"
+              ? "pb-0"
+              : "pb-[calc(env(safe-area-inset-bottom,0px)+5.75rem)]")
         )}
       >
         {renderScreen()}

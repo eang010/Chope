@@ -37,7 +37,7 @@ export function BottomNav() {
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center"
       aria-label="Primary"
     >
-      <div className="pointer-events-auto mx-auto w-full max-w-min pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] pt-2">
+      <div className="pointer-events-auto mx-auto w-full max-w-min pb-[max(0.375rem,env(safe-area-inset-bottom,0px))] pt-2">
         <div className="flex h-14 items-center justify-around gap-2 rounded-full border border-border bg-card/95 px-4 shadow-lg backdrop-blur-md sm:px-6">
         {navItems.map((item) => {
           const Icon = item.icon
